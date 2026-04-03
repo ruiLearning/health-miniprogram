@@ -13,6 +13,8 @@
   margin: 0 auto 20rpx;
 }
 .avatar-btn {
+  position: relative;
+  z-index: 2;
   padding: 0;
   margin: 0;
   width: 120rpx;
@@ -20,6 +22,7 @@
   border-radius: 50%;
   background: transparent;
   line-height: 1;
+  overflow: hidden;
 }
 .avatar-btn::after {
   border: none;
@@ -45,6 +48,7 @@
 .avatar-ring {
   position: absolute;
   inset: -6rpx;
+  z-index: 1;
   border-radius: 50%;
   border: 3rpx solid rgba(26,173,116,0.25);
 }
@@ -54,15 +58,14 @@
   color: #1A1A1A;
   margin-bottom: 16rpx;
 }
-.profile-sync-btn {
-  display: inline-block;
-  margin-bottom: 18rpx;
-  padding: 10rpx 22rpx;
-  border-radius: 999rpx;
-  background: #EDF8F2;
-  color: #1AAD74;
-  font-size: 24rpx;
-  font-weight: 600;
+.profile-name-input {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #1A1A1A;
+  margin-bottom: 16rpx;
 }
 .profile-tags {
   display: flex;
@@ -79,6 +82,7 @@
 .green-tag { background: #ECFDF5; color: #1AAD74; }
 .blue-tag  { background: #EFF6FF; color: #3B82F6; }
 .amber-tag { background: #FFFBEB; color: #F08C00; }
+.coral-tag { background: #FEF2F2; color: #E11D48; }
 
 /* ── Form Card ── */
 .form-section-title {
@@ -201,7 +205,6 @@
 
 /* Save */
 .save-btn {
-  margin-bottom: 32rpx;
   background: linear-gradient(135deg, #1AAD74 0%, #0E9058 100%);
   color: #fff;
   border-radius: 20rpx;
@@ -212,6 +215,25 @@
   box-shadow: 0 8rpx 24rpx rgba(26, 173, 116, 0.35);
 }
 .save-btn:active { opacity: 0.85; transform: scale(0.98); }
+.save-inline-btn {
+  margin-bottom: 32rpx;
+}
+.profile-bottom-space {
+  height: 140rpx;
+}
+.save-floating-bar {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 20rpx);
+  z-index: 20;
+  pointer-events: none;
+}
+.save-floating-bar .save-btn {
+  margin-bottom: 0;
+  pointer-events: auto;
+  box-shadow: 0 14rpx 32rpx rgba(26, 173, 116, 0.28);
+}
 
 /* App Info */
 .app-info {

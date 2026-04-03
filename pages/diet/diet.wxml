@@ -7,7 +7,8 @@
       <view class="diet-greeting">{{greeting}}，{{profile.name}} 👋</view>
       <view class="diet-date">{{dateStr}}</view>
     </view>
-    <view class="header-avatar">{{profile.name[0]}}</view>
+    <image wx:if="{{profile.avatarUrl}}" class="header-avatar avatar-image" src="{{profile.avatarUrl}}" mode="aspectFill" bindtap="goProfile"></image>
+    <view wx:else class="header-avatar" bindtap="goProfile">{{profileInitial}}</view>
   </view>
 
   <view class="history-strip card-sm">

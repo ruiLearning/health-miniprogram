@@ -35,6 +35,11 @@
   font-size: 32rpx;
   font-weight: 700;
 }
+.header-avatar.avatar-image {
+  display: block;
+  object-fit: cover;
+  background: #E5E7EB;
+}
 
 .history-strip {
   margin-bottom: 24rpx;

@@ -22,6 +22,7 @@ Page({
     isTodayView: true,
     recentDates: [],
     profile: {},
+    profileInitial: '健',
     meals: [],
     nutrition: { kcal: 0, carb: 0, prot: 0, fat: 0 },
     kcalPct: 0,
@@ -41,6 +42,12 @@ Page({
 
   onShow() {
     this.loadPage(this.data.selectedDate || app.globalData.today)
+  },
+
+  goProfile() {
+    wx.switchTab({
+      url: '/pages/profile/profile'
+    })
   },
 
   parseDateStr(dateStr) {
@@ -110,6 +117,7 @@ Page({
 
     this.setData({
       greeting, dateStr, profile,
+      profileInitial: (profile.name || '健康达人').charAt(0),
       todayDate: today,
       selectedDate: targetDate,
       isTodayView: targetDate === today,

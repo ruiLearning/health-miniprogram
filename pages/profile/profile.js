@@ -28,6 +28,22 @@ Page({
     bmi: 0,
     bmr: 0,
     tdee: 0,
+    avatarLoadFailed: false,
+    displayInitial: '健',
+    bmiLabel: '',
+    bmiTagClass: 'green-tag',
+    kcalHint: '',
+    kcalHintClass: 'amber-tag',
+    waterHint: '',
+    waterHintClass: 'blue-tag',
+    weightHint: '',
+    weightHintClass: 'green-tag',
+    bmrHint: '',
+    bmrHintClass: 'blue-tag',
+    healthyWeightHint: '',
+    healthyWeightHintClass: 'green-tag',
+    isDirty: false,
+    savedProfile: null,
   },
 
   onShow() {
@@ -36,11 +52,15 @@ Page({
 
   loadProfile() {
     const p = app.globalData.profile || {}
+    const savedProfile = wx.getStorageSync('hc_profile') || p
     const activityIndex = ACTIVITY_OPTIONS.findIndex(o => o.val === p.activity) ?? 2
 
     const bmi = this.calcBMI(p)
+    const bmiStatus = this.getBMIStatus(bmi)
     const bmr = this.calcBMR(p)
     const tdee = bmr ? Math.round(bmr * (p.activity || 1.55)) : 0
+    const displayName = p.name || '健康达人'
+    const headerHints = this.getHeaderHints({ ...p, bmi, tdee })
 
     this.setData({
       profile: p,
@@ -57,8 +77,24 @@ Page({
       },
       activityIndex: activityIndex >= 0 ? activityIndex : 2,
       bmi,
+      bmiLabel: bmiStatus.label,
+      bmiTagClass: bmiStatus.className,
+      kcalHint: headerHints.kcalHint,
+      kcalHintClass: headerHints.kcalHintClass,
+      waterHint: headerHints.waterHint,
+      waterHintClass: headerHints.waterHintClass,
+      weightHint: headerHints.weightHint,
+      weightHintClass: headerHints.weightHintClass,
+      bmrHint: headerHints.bmrHint,
+      bmrHintClass: headerHints.bmrHintClass,
+      healthyWeightHint: headerHints.healthyWeightHint,
+      healthyWeightHintClass: headerHints.healthyWeightHintClass,
       bmr: Math.round(bmr),
       tdee,
+      avatarLoadFailed: false,
+      displayInitial: displayName.charAt(0),
+      isDirty: false,
+      savedProfile,
     })
   },
 
@@ -68,6 +104,113 @@ Page({
     return (p.weight / (h * h)).toFixed(1)
   },
 
+  getBMIStatus(bmiValue) {
+    const bmi = parseFloat(bmiValue)
+    if (!bmi) return { label: '', className: 'green-tag' }
+    if (bmi < 18.5) return { label: '偏瘦', className: 'blue-tag' }
+    if (bmi < 24) return { label: '正常', className: 'green-tag' }
+    if (bmi < 28) return { label: '超重', className: 'amber-tag' }
+    return { label: '肥胖', className: 'coral-tag' }
+  },
+
+  getHeaderHints(profile) {
+    const bmi = parseFloat(profile.bmi)
+    const kcalGoal = parseInt(profile.kcalGoal, 10) || 0
+    const waterGoal = parseInt(profile.waterGoal, 10) || 0
+    const weight = parseFloat(profile.weight) || 0
+    const activityVal = parseFloat(profile.activity) || 0
+    const todayData = app.getDayData(app.globalData.today)
+    const actualWater = todayData.water || 0
+
+    let kcalHint = ''
+    let kcalHintClass = 'amber-tag'
+    if (kcalGoal) {
+      if (kcalGoal < 1200) {
+        kcalHint = `热量偏低 ${kcalGoal}千卡`
+        kcalHintClass = 'coral-tag'
+      } else if (kcalGoal > 2800) {
+        kcalHint = `热量偏高 ${kcalGoal}千卡`
+        kcalHintClass = 'amber-tag'
+      } else {
+        kcalHint = `热量目标 ${kcalGoal}千卡`
+        kcalHintClass = 'amber-tag'
+      }
+    }
+
+    let waterHint = ''
+    let waterHintClass = 'blue-tag'
+    const recommendedWater = weight
+      ? Math.max(6, Math.round((weight * 0.033) / 0.25) + (activityVal >= 1.55 ? 1 : 0))
+      : 8
+    if (waterGoal || recommendedWater) {
+      const targetWater = waterGoal || recommendedWater
+      if (actualWater >= targetWater) {
+        waterHint = `今日饮水 ${actualWater}/${targetWater}杯`
+        waterHintClass = 'blue-tag'
+      } else if (actualWater > 0) {
+        waterHint = `今日饮水 ${actualWater}/${targetWater}杯`
+        waterHintClass = 'coral-tag'
+      } else if (waterGoal) {
+        waterHint = `饮水目标 ${targetWater}杯`
+        waterHintClass = 'blue-tag'
+      } else {
+        waterHint = `饮水建议 ${targetWater}杯`
+        waterHintClass = 'blue-tag'
+      }
+    }
+
+    let weightHint = ''
+    let weightHintClass = 'green-tag'
+    const height = parseFloat(profile.height) || 0
+    let healthyWeightHint = ''
+    if (height) {
+      const meter = height / 100
+      const minWeight = (18.5 * meter * meter).toFixed(1)
+      const maxWeight = (23.9 * meter * meter).toFixed(1)
+      healthyWeightHint = `${minWeight}-${maxWeight}kg`
+    }
+
+    if (weight) {
+      if (bmi && bmi < 18.5) {
+        weightHint = `当前 ${weight}kg · 建议 ${healthyWeightHint || '--'} · 偏瘦`
+        weightHintClass = 'blue-tag'
+      } else if (bmi && bmi >= 24) {
+        weightHint = `当前 ${weight}kg · 建议 ${healthyWeightHint || '--'} · 控制体重`
+        weightHintClass = 'amber-tag'
+      } else {
+        weightHint = `当前 ${weight}kg · 建议 ${healthyWeightHint || '--'} · 保持节奏`
+        weightHintClass = 'green-tag'
+      }
+    }
+
+    let bmrHint = ''
+    let bmrHintClass = 'blue-tag'
+    if (profile.tdee) {
+      const bmr = Math.round(profile.tdee / (parseFloat(profile.activity) || 1.55))
+      bmrHint = `基础代谢 ${bmr}千卡`
+      bmrHintClass = 'blue-tag'
+    }
+
+    let healthyWeightHintClass = 'green-tag'
+    if (height) {
+      healthyWeightHint = `建议体重 ${healthyWeightHint}`
+      healthyWeightHintClass = bmi && (bmi < 18.5 || bmi >= 24) ? 'amber-tag' : 'green-tag'
+    }
+
+    return {
+      kcalHint,
+      kcalHintClass,
+      waterHint,
+      waterHintClass,
+      weightHint,
+      weightHintClass,
+      bmrHint,
+      bmrHintClass,
+      healthyWeightHint,
+      healthyWeightHintClass,
+    }
+  },
+
   calcBMR(p) {
     if (!p.height || !p.weight || !p.age) return 0
     return p.gender === 'female'
@@ -75,13 +218,48 @@ Page({
       : 66  + 13.7 * p.weight + 5  * p.height - 6.8 * p.age
   },
 
+  persistProfileDraft(extra = {}) {
+    const current = app.globalData.profile || {}
+    const draft = {
+      ...current,
+      ...extra,
+    }
+    app.globalData.profile = draft
+  },
+
+  buildProfileFromForm(form = this.data.form) {
+    return {
+      name: (form.name || '').trim(),
+      avatarUrl: form.avatarUrl || '',
+      gender: form.gender || 'male',
+      age: parseFloat(form.age) || 25,
+      height: parseFloat(form.height) || 170,
+      weight: parseFloat(form.weight) || 65,
+      kcalGoal: parseInt(form.kcalGoal, 10) || 2000,
+      waterGoal: parseInt(form.waterGoal, 10) || 8,
+      activity: parseFloat(form.activity) || 1.55,
+    }
+  },
+
+  updateDirtyState(form = this.data.form) {
+    const savedProfile = this.data.savedProfile || wx.getStorageSync('hc_profile') || {}
+    const currentProfile = this.buildProfileFromForm(form)
+    const isDirty = JSON.stringify(currentProfile) !== JSON.stringify(savedProfile)
+    this.setData({ isDirty })
+  },
+
   onInput(e) {
     const key = e.currentTarget.dataset.key
     const val = e.detail.value
+    const nextForm = {
+      ...this.data.form,
+      [key]: val,
+    }
     this.setData({ [`form.${key}`]: val })
+    this.updateDirtyState(nextForm)
 
     // live-update BMI / BMR preview
-    if (['height', 'weight', 'age', 'gender'].includes(key)) {
+    if (['height', 'weight', 'age', 'gender', 'kcalGoal', 'waterGoal'].includes(key)) {
       const f = this.data.form
       const preview = {
         ...f,
@@ -91,24 +269,84 @@ Page({
         age:    parseFloat(key === 'age'    ? val : f.age),
       }
       const bmi = this.calcBMI(preview)
+      const bmiStatus = this.getBMIStatus(bmi)
       const bmr = this.calcBMR(preview)
       const tdee = bmr ? Math.round(bmr * (parseFloat(f.activity) || 1.55)) : 0
-      this.setData({ bmi, bmr: Math.round(bmr), tdee })
+      const headerHints = this.getHeaderHints({
+        ...preview,
+        bmi,
+        kcalGoal: f.kcalGoal,
+        waterGoal: f.waterGoal,
+        tdee,
+      })
+      this.setData({
+        bmi,
+        bmiLabel: bmiStatus.label,
+        bmiTagClass: bmiStatus.className,
+        kcalHint: headerHints.kcalHint,
+        kcalHintClass: headerHints.kcalHintClass,
+        waterHint: headerHints.waterHint,
+        waterHintClass: headerHints.waterHintClass,
+        weightHint: headerHints.weightHint,
+        weightHintClass: headerHints.weightHintClass,
+        bmrHint: headerHints.bmrHint,
+        bmrHintClass: headerHints.bmrHintClass,
+        healthyWeightHint: headerHints.healthyWeightHint,
+        healthyWeightHintClass: headerHints.healthyWeightHintClass,
+        bmr: Math.round(bmr),
+        tdee
+      })
     }
+  },
+
+  onNicknameInput(e) {
+    const val = (e.detail.value || '').trim()
+    const displayName = val || '健康达人'
+    const nextForm = {
+      ...this.data.form,
+      name: val,
+    }
+    this.setData({
+      'form.name': val,
+      displayInitial: displayName.charAt(0),
+    })
+    if (val) this.persistProfileDraft({ name: val })
+    this.updateDirtyState(nextForm)
+  },
+
+  onNicknameBlur(e) {
+    this.onNicknameInput(e)
   },
 
   onChooseAvatar(e) {
     const avatarUrl = e.detail.avatarUrl || ''
-    if (!avatarUrl) return
+    if (avatarUrl) {
+      const nextForm = {
+        ...this.data.form,
+        avatarUrl,
+      }
+      this.setData({
+        'form.avatarUrl': avatarUrl,
+        'profile.avatarUrl': avatarUrl,
+        avatarLoadFailed: false,
+      })
+      this.persistProfileDraft({ avatarUrl })
+      this.updateDirtyState(nextForm)
+    }
+    this.syncWechatProfile()
+  },
+
+  onAvatarError() {
     this.setData({
-      'form.avatarUrl': avatarUrl,
-      'profile.avatarUrl': avatarUrl,
+      avatarLoadFailed: true,
+      'form.avatarUrl': '',
+      'profile.avatarUrl': '',
     })
   },
 
   syncWechatProfile() {
     if (!wx.getUserProfile) {
-      wx.showToast({ title: '当前基础库不支持', icon: 'none' })
+      wx.showToast({ title: '请直接点头像和昵称获取微信信息', icon: 'none' })
       return
     }
 
@@ -117,16 +355,32 @@ Page({
       success: (res) => {
         const userInfo = res.userInfo || {}
         const updates = {}
+        const profileDraft = {}
         if (userInfo.nickName) updates['form.name'] = userInfo.nickName
         if (userInfo.avatarUrl) updates['form.avatarUrl'] = userInfo.avatarUrl
         if (userInfo.nickName) updates['profile.name'] = userInfo.nickName
         if (userInfo.avatarUrl) updates['profile.avatarUrl'] = userInfo.avatarUrl
+        if (userInfo.nickName) profileDraft.name = userInfo.nickName
+        if (userInfo.avatarUrl) profileDraft.avatarUrl = userInfo.avatarUrl
 
+        if (!Object.keys(updates).length) {
+          wx.showToast({ title: '未获取到可同步资料', icon: 'none' })
+          return
+        }
         this.setData(updates)
+        this.persistProfileDraft(profileDraft)
+        if (userInfo.nickName) {
+          this.setData({ displayInitial: userInfo.nickName.charAt(0) })
+        }
+        this.updateDirtyState({
+          ...this.data.form,
+          ...(userInfo.nickName ? { name: userInfo.nickName } : {}),
+          ...(userInfo.avatarUrl ? { avatarUrl: userInfo.avatarUrl } : {}),
+        })
         wx.showToast({ title: '已同步微信资料', icon: 'success' })
       },
       fail: () => {
-        wx.showToast({ title: '未授权微信资料', icon: 'none' })
+        wx.showToast({ title: '请点头像和昵称使用微信信息', icon: 'none' })
       }
     })
   },
@@ -198,9 +452,30 @@ Page({
     wx.setStorageSync('hc_profile', profile)
 
     const bmi = this.calcBMI(profile)
+    const bmiStatus = this.getBMIStatus(bmi)
     const bmr = this.calcBMR(profile)
     const tdee = bmr ? Math.round(bmr * profile.activity) : 0
-    this.setData({ profile, bmi, bmr: Math.round(bmr), tdee })
+    const headerHints = this.getHeaderHints({ ...profile, bmi, tdee })
+    this.setData({
+      profile,
+      bmi,
+      bmiLabel: bmiStatus.label,
+      bmiTagClass: bmiStatus.className,
+      kcalHint: headerHints.kcalHint,
+      kcalHintClass: headerHints.kcalHintClass,
+      waterHint: headerHints.waterHint,
+      waterHintClass: headerHints.waterHintClass,
+      weightHint: headerHints.weightHint,
+      weightHintClass: headerHints.weightHintClass,
+      bmrHint: headerHints.bmrHint,
+      bmrHintClass: headerHints.bmrHintClass,
+      healthyWeightHint: headerHints.healthyWeightHint,
+      healthyWeightHintClass: headerHints.healthyWeightHintClass,
+      bmr: Math.round(bmr),
+      tdee,
+      isDirty: false,
+      savedProfile: profile,
+    })
 
     wx.showToast({ title: '保存成功 🎉', icon: 'success', duration: 1500 })
   },
