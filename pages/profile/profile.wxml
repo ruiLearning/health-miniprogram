@@ -1,0 +1,132 @@
+<!-- pages/profile/profile.wxml -->
+<view class="page-wrap">
+
+  <!-- ── Profile Header ── -->
+  <view class="profile-top card">
+    <view class="avatar-wrap">
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image wx:if="{{form.avatarUrl || profile.avatarUrl}}" class="avatar-img" src="{{form.avatarUrl || profile.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="avatar">{{profile.name ? profile.name[0] : '健'}}</view>
+      </button>
+      <view class="avatar-ring"></view>
+    </view>
+    <view class="profile-name-text">{{profile.name || '健康达人'}}</view>
+    <view class="profile-sync-btn" bindtap="syncWechatProfile">从微信同步头像昵称</view>
+    <view class="profile-tags">
+      <view class="ptag green-tag" wx:if="{{bmi > 0}}">BMI {{bmi}}</view>
+      <view class="ptag blue-tag" wx:if="{{profile.weight}}">{{profile.weight}}kg</view>
+      <view class="ptag amber-tag" wx:if="{{tdee > 0}}">TDEE {{tdee}}千卡</view>
+    </view>
+  </view>
+
+  <!-- ── Basic Info ── -->
+  <view class="card">
+    <view class="form-section-title">基本信息</view>
+
+    <view class="form-row">
+      <view class="form-label">昵称</view>
+      <input class="form-input" type="nickname" placeholder="你的昵称" value="{{form.name}}"
+        bindinput="onInput" data-key="name" maxlength="10"
+        placeholder-style="color:#CCC"/>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <view class="form-row">
+      <view class="form-label">性别</view>
+      <view class="gender-row">
+        <view class="gender-btn {{form.gender === 'male' ? 'active' : ''}}"
+          bindtap="setGender" data-val="male">👨 男</view>
+        <view class="gender-btn {{form.gender === 'female' ? 'active' : ''}}"
+          bindtap="setGender" data-val="female">👩 女</view>
+      </view>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <view class="form-row-inline">
+      <view class="form-col">
+        <view class="form-label">年龄</view>
+        <view class="input-with-unit">
+          <input class="form-input-sm" type="number" placeholder="25"
+            value="{{form.age}}" bindinput="onInput" data-key="age"/>
+          <text class="input-unit">岁</text>
+        </view>
+      </view>
+      <view class="form-col">
+        <view class="form-label">身高</view>
+        <view class="input-with-unit">
+          <input class="form-input-sm" type="number" placeholder="170"
+            value="{{form.height}}" bindinput="onInput" data-key="height"/>
+          <text class="input-unit">cm</text>
+        </view>
+      </view>
+      <view class="form-col">
+        <view class="form-label">体重</view>
+        <view class="input-with-unit">
+          <input class="form-input-sm" type="number" placeholder="65"
+            value="{{form.weight}}" bindinput="onInput" data-key="weight"/>
+          <text class="input-unit">kg</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── Goals ── -->
+  <view class="card">
+    <view class="form-section-title">健康目标</view>
+
+    <view class="form-row">
+      <view class="form-label">活动水平</view>
+      <picker bindchange="onActivityChange" value="{{activityIndex}}" range="{{activityOptions}}" range-key="label">
+        <view class="picker-val">{{activityOptions[activityIndex].label}} ›</view>
+      </picker>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <view class="form-row">
+      <view class="form-label">
+        每日热量目标
+        <text class="auto-calc" bindtap="autoCalcKcal">⚡ 自动计算</text>
+      </view>
+      <view class="input-with-unit">
+        <input class="form-input-sm wide" type="number" placeholder="2000"
+          value="{{form.kcalGoal}}" bindinput="onInput" data-key="kcalGoal"/>
+        <text class="input-unit">千卡</text>
+      </view>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <view class="form-row">
+      <view class="form-label">每日饮水目标</view>
+      <view class="input-with-unit">
+        <input class="form-input-sm wide" type="number" placeholder="8"
+          value="{{form.waterGoal}}" bindinput="onInput" data-key="waterGoal"/>
+        <text class="input-unit">杯</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── Auto calc tip ── -->
+  <view class="calc-tip card" wx:if="{{tdee > 0}}">
+    <view class="tip-title">🧮 热量计算结果</view>
+    <view class="tip-row"><text class="tip-label">基础代谢 (BMR)</text><text class="tip-val green">{{bmr}} 千卡</text></view>
+    <view class="tip-row"><text class="tip-label">日常消耗 (TDEE)</text><text class="tip-val green">{{tdee}} 千卡</text></view>
+    <view class="tip-row"><text class="tip-label">减脂建议</text><text class="tip-val amber">{{tdee - 300}} 千卡</text></view>
+    <view class="tip-row"><text class="tip-label">增肌建议</text><text class="tip-val blue">{{tdee + 300}} 千卡</text></view>
+  </view>
+
+  <!-- ── Save Button ── -->
+  <view class="save-btn btn-primary" bindtap="saveProfile">保存设置</view>
+
+  <!-- ── App Info ── -->
+  <view class="app-info">
+    <view class="app-logo">🌱</view>
+    <view class="app-name">健康打卡</view>
+    <view class="app-ver">v1.0.0 · 数据仅存储在本设备</view>
+    <view class="app-tip">💡 提示：将小程序添加到我的小程序，方便每天打开记录</view>
+  </view>
+
+</view>

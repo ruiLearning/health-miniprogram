@@ -1,0 +1,71 @@
+<!-- pages/masters/detail/detail.wxml -->
+<scroll-view scroll-y class="detail-wrap" wx:if="{{article}}">
+
+  <!-- Header -->
+  <view class="detail-header">
+    <view class="detail-source">
+      <view class="platform-tag">{{article.platform}}</view>
+      <view class="detail-author">{{article.author}}</view>
+      <view class="detail-date">{{article.date}}</view>
+    </view>
+    <view class="detail-title">{{article.title}}</view>
+    <view class="detail-tags">
+      <view class="tag-item" wx:for="{{article.tags}}" wx:key="*this" wx:for-item="tag">#{{tag}}</view>
+    </view>
+  </view>
+
+  <!-- Intro -->
+  <view class="detail-card">
+    <view class="intro-text">{{article.intro}}</view>
+  </view>
+
+  <!-- Sections -->
+  <view class="detail-card" wx:for="{{article.sections}}" wx:key="num" wx:for-item="sec">
+
+    <!-- Section heading -->
+    <view class="sec-heading">
+      <view class="sec-num">{{sec.num}}</view>
+      <view class="sec-title">{{sec.title}}</view>
+    </view>
+
+    <!-- Section text -->
+    <view class="sec-text" wx:if="{{sec.text}}">{{sec.text}}</view>
+
+    <!-- Table -->
+    <scroll-view scroll-x class="table-scroll" wx:if="{{sec.table}}">
+      <view class="table-wrap">
+        <!-- Header row -->
+        <view class="table-row table-head-row">
+          <view class="table-cell table-head" wx:for="{{sec.table.headers}}" wx:key="*this" wx:for-item="h">{{h}}</view>
+        </view>
+        <!-- Data rows -->
+        <view class="table-row {{index % 2 === 0 ? 'row-even' : 'row-odd'}}"
+              wx:for="{{sec.table.rows}}" wx:key="{{index}}" wx:for-item="row" wx:for-index="index">
+          <view class="table-cell" wx:for="{{row}}" wx:key="{{index}}" wx:for-item="cell" wx:for-index="ci">{{cell}}</view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- Note -->
+    <view class="sec-note" wx:if="{{sec.note}}">
+      <view class="note-icon">💡</view>
+      <view class="note-text">{{sec.note}}</view>
+    </view>
+
+    <!-- Tips list -->
+    <view class="tips-list" wx:if="{{sec.tips}}">
+      <view class="tip-item" wx:for="{{sec.tips}}" wx:key="{{index}}">
+        <view class="tip-dot"></view>
+        <view class="tip-text">{{item}}</view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- Conclusion -->
+  <view class="detail-card conclusion-card">
+    <view class="conclusion-label">总结</view>
+    <view class="conclusion-text">{{article.conclusion}}</view>
+  </view>
+
+</scroll-view>

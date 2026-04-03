@@ -1,0 +1,136 @@
+<!-- pages/checkin/checkin.wxml -->
+<view class="page-wrap">
+
+  <!-- ── Streak Header ── -->
+  <view class="streak-card">
+    <view class="streak-main">
+      <view class="streak-left">
+        <view class="streak-num">{{streakDays}}</view>
+        <view class="streak-label">连续打卡天</view>
+      </view>
+      <view class="streak-right">
+        <view class="streak-fire">{{streakDays >= 7 ? '🔥' : streakDays >= 3 ? '⚡' : '💪'}}</view>
+        <view class="streak-sub">本月 <text class="streak-em">{{monthDays}}</text> 天 · <text class="streak-em">{{monthRate}}%</text></view>
+      </view>
+    </view>
+    <!-- Week dots -->
+    <view class="week-row">
+      <view class="week-item {{item.done ? 'done' : ''}} {{item.isToday ? 'today' : ''}} {{item.isFuture ? 'future' : ''}}"
+        wx:for="{{weekDays}}" wx:key="date">
+        <view class="wi-day">{{item.dayLabel}}</view>
+        <view class="wi-dot">
+          <text wx:if="{{item.done}}" class="wi-check">✓</text>
+        </view>
+        <view class="wi-date">{{item.dateLabel}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── Today's Tasks ── -->
+  <view class="section-header">
+    <text class="section-title-text">今日任务</text>
+    <view class="done-badge">
+      <text class="done-num">{{doneTasks}}</text>
+      <text class="done-total">/{{totalTasks}}</text>
+    </view>
+  </view>
+
+  <view class="task-grid">
+    <view class="task-card"
+      style="background:{{item.cardBg}};border-color:{{item.borderColor}}"
+      wx:for="{{tasks}}" wx:key="id"
+      bindtap="toggleTask" data-id="{{item.id}}">
+      <view class="task-row-top">
+        <view class="task-icon-wrap" style="background:{{item.iconBg}}">
+          <text class="task-icon">{{item.icon}}</text>
+        </view>
+        <view class="task-check {{item.done ? 'checked' : ''}}"
+          style="{{item.done ? 'background:' + item.color + ';border-color:' + item.color : ''}}">
+          <text wx:if="{{item.done}}" class="check-mark">✓</text>
+        </view>
+      </view>
+      <view class="task-name" style="color:{{item.nameColor}}">{{item.name}}</view>
+    </view>
+  </view>
+
+  <!-- ── Water Tracker ── -->
+  <view class="card water-card">
+    <view class="water-top">
+      <view class="water-title-wrap">
+        <text class="card-title-text">💧 今日饮水</text>
+        <text class="water-sub">每杯 250ml</text>
+      </view>
+      <view class="water-stat">
+        <text class="water-count">{{waterCount}}</text>
+        <text class="water-total"> / {{waterGoal}}</text>
+      </view>
+    </view>
+    <view class="water-bar-wrap">
+      <view class="water-bar-fill" style="width:{{waterPct}}%"></view>
+    </view>
+    <view class="water-cups">
+      <view class="water-cup {{index < waterCount ? 'filled' : ''}}"
+        wx:for="{{waterCups}}" wx:key="index"
+        bindtap="toggleWater" data-index="{{index}}">
+        <text class="cup-icon">{{index < waterCount ? '💧' : '○'}}</text>
+      </view>
+    </view>
+    <view class="water-btns">
+      <view class="water-btn minus" bindtap="decreaseWater">－ 减一杯</view>
+      <view class="water-btn plus" bindtap="increaseWater">＋ 加一杯</view>
+    </view>
+  </view>
+
+  <!-- ── Mood ── -->
+  <view class="card mood-card">
+    <text class="card-title-text">今日心情</text>
+    <view class="mood-row">
+      <view class="mood-item {{todayMood === item.val ? 'active' : ''}}"
+        wx:for="{{moods}}" wx:key="val"
+        bindtap="setMood" data-val="{{item.val}}">
+        <text class="mood-emoji">{{item.emoji}}</text>
+        <text class="mood-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── Weight Note ── -->
+  <view class="card weight-card">
+    <view class="weight-card-head">
+      <view>
+        <text class="card-title-text">📊 体重记录</text>
+        <view class="weight-date-sub">{{selectedWeightLabel}} · {{isTodayWeight ? '今日' : '历史记录'}}</view>
+      </view>
+      <picker mode="date" value="{{selectedWeightDate}}" end="{{todayDate}}" bindchange="onWeightDateChange">
+        <view class="weight-date-picker">选择日期</view>
+      </picker>
+    </view>
+    <scroll-view class="weight-history-scroll" scroll-x enable-flex show-scrollbar="{{false}}">
+      <view
+        wx:for="{{recentWeightDates}}"
+        wx:key="date"
+        class="weight-history-chip {{item.active ? 'active' : ''}} {{item.hasWeight ? 'has-data' : ''}}"
+        data-date="{{item.date}}"
+        bindtap="selectWeightDate"
+      >
+        <view class="weight-history-week">{{item.week}}</view>
+        <view class="weight-history-day">{{item.day}}</view>
+      </view>
+    </scroll-view>
+    <view class="weight-input-wrap">
+      <input class="weight-input" type="digit" placeholder="输入体重"
+        value="{{todayWeight}}" bindinput="onWeightInput"
+        placeholder-style="color:#CCC;font-size:28rpx"/>
+      <view class="weight-unit">kg</view>
+      <view class="weight-save-btn" bindtap="saveWeight">{{isTodayWeight ? '记录' : '修改'}}</view>
+    </view>
+    <view wx:if="{{lastWeight}}" class="weight-diff">
+      上次：{{lastWeight}}kg
+      <text class="{{weightDiff > 0 ? 'diff-up' : 'diff-down'}}">
+        {{weightDiff > 0 ? '▲' : '▼'}} {{weightDiffAbs}}kg
+      </text>
+    </view>
+    <view wx:elif="{{!todayWeight}}" class="weight-diff">这一天还没有记录体重</view>
+  </view>
+
+</view>

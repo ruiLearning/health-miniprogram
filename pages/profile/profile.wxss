@@ -1,0 +1,231 @@
+/* pages/profile/profile.wxss */
+
+/* ── Profile Top ── */
+.profile-top {
+  text-align: center;
+  padding: 48rpx 32rpx 36rpx;
+  margin-bottom: 24rpx;
+}
+.avatar-wrap {
+  position: relative;
+  width: 120rpx;
+  height: 120rpx;
+  margin: 0 auto 20rpx;
+}
+.avatar-btn {
+  padding: 0;
+  margin: 0;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: transparent;
+  line-height: 1;
+}
+.avatar-btn::after {
+  border: none;
+}
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1AAD74, #0D9158);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52rpx;
+  color: #fff;
+  font-weight: 700;
+}
+.avatar-img {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  display: block;
+}
+.avatar-ring {
+  position: absolute;
+  inset: -6rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(26,173,116,0.25);
+}
+.profile-name-text {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #1A1A1A;
+  margin-bottom: 16rpx;
+}
+.profile-sync-btn {
+  display: inline-block;
+  margin-bottom: 18rpx;
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
+  background: #EDF8F2;
+  color: #1AAD74;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+.profile-tags {
+  display: flex;
+  justify-content: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+.ptag {
+  padding: 6rpx 20rpx;
+  border-radius: 40rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+.green-tag { background: #ECFDF5; color: #1AAD74; }
+.blue-tag  { background: #EFF6FF; color: #3B82F6; }
+.amber-tag { background: #FFFBEB; color: #F08C00; }
+
+/* ── Form Card ── */
+.form-section-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 2rpx;
+  margin-bottom: 24rpx;
+  text-transform: uppercase;
+}
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80rpx;
+}
+.form-row-inline {
+  display: flex;
+  gap: 20rpx;
+}
+.form-col { flex: 1; }
+.form-label {
+  font-size: 28rpx;
+  color: #555;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.form-input {
+  flex: 1;
+  text-align: right;
+  font-size: 28rpx;
+  color: #1A1A1A;
+  font-weight: 500;
+}
+.form-input-sm {
+  width: 100%;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+.form-input-sm.wide { max-width: 160rpx; }
+.input-with-unit {
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
+  justify-content: flex-end;
+}
+.input-unit {
+  font-size: 22rpx;
+  color: #AAA;
+}
+.form-divider {
+  height: 1rpx;
+  background: #F5F5F5;
+  margin: 4rpx 0;
+}
+
+/* Gender buttons */
+.gender-row {
+  display: flex;
+  gap: 12rpx;
+}
+.gender-btn {
+  padding: 10rpx 28rpx;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  background: #F5F5F5;
+  color: #888;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+.gender-btn.active {
+  background: #ECFDF5;
+  color: #1AAD74;
+  border-color: #1AAD74;
+  font-weight: 600;
+}
+.gender-btn:active { opacity: 0.75; }
+
+/* Picker */
+.picker-val {
+  font-size: 28rpx;
+  color: #1AAD74;
+  font-weight: 500;
+}
+
+/* Auto calc */
+.auto-calc {
+  font-size: 22rpx;
+  color: #F08C00;
+  background: #FFFBEB;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  font-weight: 600;
+}
+
+/* Calc tip */
+.calc-tip { margin-bottom: 24rpx; }
+.tip-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+  color: #1A1A1A;
+}
+.tip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+.tip-row:last-child { border-bottom: none; }
+.tip-label { font-size: 26rpx; color: #888; }
+.tip-val   { font-size: 28rpx; font-weight: 700; }
+.green { color: #1AAD74; }
+.amber { color: #F08C00; }
+.blue  { color: #3B82F6; }
+
+/* Save */
+.save-btn {
+  margin-bottom: 32rpx;
+  background: linear-gradient(135deg, #1AAD74 0%, #0E9058 100%);
+  color: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx 0;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  box-shadow: 0 8rpx 24rpx rgba(26, 173, 116, 0.35);
+}
+.save-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+/* App Info */
+.app-info {
+  text-align: center;
+  padding: 16rpx 0 40rpx;
+}
+.app-logo { font-size: 48rpx; margin-bottom: 8rpx; }
+.app-name { font-size: 28rpx; font-weight: 700; color: #1A1A1A; margin-bottom: 6rpx; }
+.app-ver  { font-size: 22rpx; color: #CCC; margin-bottom: 16rpx; }
+.app-tip  {
+  font-size: 24rpx;
+  color: #AAA;
+  background: #F8F8F8;
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
+  line-height: 1.6;
+}

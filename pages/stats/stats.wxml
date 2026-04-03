@@ -1,0 +1,195 @@
+<!-- pages/stats/stats.wxml -->
+<view class="page-wrap">
+
+  <view class="hero-card">
+    <view class="hero-kicker">HEALTH OVERVIEW</view>
+    <view class="hero-title">你的健康趋势</view>
+    <view class="hero-subtitle">从饮食、饮水、体重和打卡完成度，快速看到这段时间的状态变化。</view>
+    <view class="hero-metrics">
+      <view class="hero-metric">
+        <view class="hero-metric-value">{{monthCheckinDays}}</view>
+        <view class="hero-metric-label">本月坚持</view>
+      </view>
+      <view class="hero-metric">
+        <view class="hero-metric-value">{{avgKcal}}</view>
+        <view class="hero-metric-label">平均热量</view>
+      </view>
+      <view class="hero-metric">
+        <view class="hero-metric-value">{{avgWater}}</view>
+        <view class="hero-metric-label">平均饮水</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── Top Stats ── -->
+  <view class="stats-row">
+    <view class="stat-card green-card">
+      <view class="stat-icon">🔥</view>
+      <view class="stat-num">{{monthCheckinDays}}</view>
+      <view class="stat-lbl">本月打卡天</view>
+    </view>
+    <view class="stat-card blue-card">
+      <view class="stat-icon">🍽️</view>
+      <view class="stat-num">{{avgKcal}}</view>
+      <view class="stat-lbl">平均热量(千卡)</view>
+    </view>
+    <view class="stat-card amber-card">
+      <view class="stat-icon">💧</view>
+      <view class="stat-num">{{avgWater}}</view>
+      <view class="stat-lbl">平均饮水(杯)</view>
+    </view>
+  </view>
+
+  <!-- ── 7-Day Kcal ── -->
+  <view class="card">
+    <view class="section-head">
+      <view>
+        <view class="section-title">近7天热量趋势</view>
+        <view class="section-desc">看看最近一周的饮食节奏是否稳定</view>
+      </view>
+      <view class="section-chip">7 DAYS</view>
+    </view>
+    <view class="chart-legend">
+      <view class="legend-item">
+        <view class="legend-dot green-dot"></view>
+        <text>达标</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot amber-dot"></view>
+        <text>不足</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot red-dot"></view>
+        <text>超标</text>
+      </view>
+    </view>
+    <canvas canvas-id="kcalChart" class="chart-canvas"></canvas>
+    <!-- Day labels -->
+    <view class="chart-labels">
+      <text wx:for="{{kcalDays}}" wx:key="date" class="chart-lbl">{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- ── Nutrition Distribution ── -->
+  <view class="card nutrition-card">
+    <view class="section-head">
+      <view>
+        <view class="section-title">今日营养分布</view>
+        <view class="section-desc">{{macroHasData ? '用更轻的视觉看清三大营养素比例和热量来源' : '今天还没有饮食记录，去记录一餐后这里会自动生成分布'}}</view>
+      </view>
+      <view class="section-chip nutrition-chip">TODAY</view>
+    </view>
+    <view class="macro-dist">
+      <view class="dist-ring-wrap">
+        <canvas canvas-id="macroChart" class="dist-canvas"></canvas>
+      </view>
+      <view class="dist-legend">
+        <view class="dist-item" wx:for="{{macroItems}}" wx:key="label">
+          <view class="dist-accent" style="background:{{item.color}}"></view>
+          <view class="dist-info">
+            <view class="dist-row">
+              <view class="dist-label">{{item.label}}</view>
+              <view class="dist-pct" style="background:{{item.bg}};color:{{item.color}}">{{item.pct}}%</view>
+            </view>
+            <view wx:if="{{item.val > 0}}" class="dist-val">
+              {{item.val}}g
+            </view>
+            <view wx:if="{{item.val > 0}}" class="dist-kcal">{{item.kcal}} kcal</view>
+            <view wx:else class="dist-val dist-empty">等待记录</view>
+          </view>
+        </view>
+        <view wx:if="{{!macroHasData}}" class="dist-empty-tip">从早餐、午餐、晚餐或加餐添加食物后，这里会自动更新。</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── Weight Trend ── -->
+  <view class="card">
+    <view class="weight-header">
+      <view>
+        <view class="section-title" style="margin-bottom:0">体重变化趋势</view>
+        <view class="section-desc">不是只看轻了多少，也看变化是否平稳</view>
+      </view>
+      <view class="weight-period">近30天</view>
+    </view>
+
+    <!-- Summary row -->
+    <view class="weight-summary">
+      <view class="wsummary-item">
+        <view class="wsummary-val">{{weightCurrent}}</view>
+        <view class="wsummary-lbl">当前(kg)</view>
+      </view>
+      <view class="wsummary-divider"></view>
+      <view class="wsummary-item">
+        <view class="wsummary-val" style="color:{{weightChangeColor}}">{{weightChangeStr}}</view>
+        <view class="wsummary-lbl">30天变化</view>
+      </view>
+      <view class="wsummary-divider"></view>
+      <view class="wsummary-item">
+        <view class="wsummary-val">{{weightDays}}</view>
+        <view class="wsummary-lbl">记录天数</view>
+      </view>
+      <view class="wsummary-divider"></view>
+      <view class="wsummary-item">
+        <view class="wsummary-val green">{{weightMin}}</view>
+        <view class="wsummary-lbl">最低(kg)</view>
+      </view>
+    </view>
+
+    <!-- Chart -->
+    <canvas canvas-id="weightChart" class="weight-canvas"></canvas>
+  </view>
+
+  <!-- ── Task Rate ── -->
+  <view class="card">
+    <view class="section-head">
+      <view>
+        <view class="section-title">本周打卡完成率</view>
+        <view class="section-desc">习惯越稳定，体重和状态通常越好</view>
+      </view>
+      <view class="section-chip">WEEK</view>
+    </view>
+    <view class="task-rate-list">
+      <view class="rate-item" wx:for="{{taskRates}}" wx:key="id">
+        <view class="rate-icon">{{item.icon}}</view>
+        <view class="rate-info">
+          <view class="rate-name">{{item.name}}</view>
+          <view class="rate-bar-wrap">
+            <view class="rate-bar" style="width:{{item.rate}}%;background:{{item.color}}"></view>
+          </view>
+        </view>
+        <view class="rate-pct" style="color:{{item.color}}">{{item.rate}}%</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── BMI ── -->
+  <view class="card bmi-card" wx:if="{{bmi > 0}}">
+    <view class="section-head">
+      <view>
+        <view class="section-title">身体数据</view>
+        <view class="section-desc">结合身高和体重，快速理解当前区间</view>
+      </view>
+      <view class="section-chip">BMI</view>
+    </view>
+    <view class="bmi-row">
+      <view class="bmi-num-wrap">
+        <view class="bmi-num">{{bmi}}</view>
+        <view class="bmi-label">BMI</view>
+      </view>
+      <view class="bmi-detail">
+        <view class="bmi-status" style="color:{{bmiColor}}">{{bmiStatus}}</view>
+        <view class="bmi-range">正常范围：18.5 ~ 24.0</view>
+        <view class="bmi-bar-wrap">
+          <view class="bmi-bar-track">
+            <view class="bmi-bar-fill" style="left:{{bmiPos}}%;background:{{bmiColor}}"></view>
+          </view>
+          <view class="bmi-ticks">
+            <text>14</text><text>18.5</text><text>24</text><text>28</text><text>40</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+</view>

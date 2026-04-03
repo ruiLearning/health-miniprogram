@@ -1,0 +1,37 @@
+<!-- pages/masters/masters.wxml -->
+<view class="page-wrap">
+
+  <view class="page-header">
+    <view class="header-title">大神训练法</view>
+    <view class="header-sub">精选大神健身饮食干货</view>
+  </view>
+
+  <view class="article-card" wx:for="{{articles}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+
+    <!-- Source bar -->
+    <view class="card-source">
+      <view class="platform-tag">{{item.platform}}</view>
+      <view class="author-name">{{item.author}}</view>
+      <view class="card-date">{{item.date}}</view>
+    </view>
+
+    <!-- Title -->
+    <view class="card-title">{{item.title}}</view>
+
+    <!-- Tags -->
+    <view class="card-tags">
+      <view class="tag-item" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag">#{{tag}}</view>
+    </view>
+
+    <!-- Preview -->
+    <view class="card-preview">{{item.intro}}</view>
+
+    <!-- Footer -->
+    <view class="card-footer">
+      <view class="section-count">{{item.sections.length}} 个章节</view>
+      <view class="read-more">查看详情 ›</view>
+    </view>
+
+  </view>
+
+</view>

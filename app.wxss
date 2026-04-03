@@ -1,0 +1,97 @@
+/* app.wxss */
+page {
+  background: #F4F6FA;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  color: #1A1A1A;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+/* ── Variables via class utilities ── */
+.color-green { color: #1AAD74; }
+.color-amber { color: #F08C00; }
+.color-blue { color: #3B82F6; }
+.color-coral { color: #EF4444; }
+.color-purple { color: #7C3AED; }
+.color-text2 { color: #666; }
+.color-text3 { color: #999; }
+
+/* ── Shared Card ── */
+.card {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.05);
+}
+
+.card-sm {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+/* ── Section Title ── */
+.section-title {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #999;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+  margin-bottom: 24rpx;
+}
+
+/* ── Tag / Badge ── */
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 40rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+/* ── Button ── */
+.btn-primary {
+  background: linear-gradient(135deg, #1AAD74 0%, #0E9058 100%);
+  color: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx 0;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx rgba(26, 173, 116, 0.35);
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+/* ── Separator ── */
+.divider {
+  height: 1rpx;
+  background: #F0F0F0;
+  margin: 16rpx 0;
+}
+
+/* ── Page Padding ── */
+.page-wrap {
+  padding: 24rpx 24rpx 180rpx;
+}
+
+/* ── Flex helpers ── */
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-1 { flex: 1; }
+
+/* ── Text helpers ── */
+.text-bold { font-weight: 600; }
+.text-center { text-align: center; }
+.text-sm { font-size: 24rpx; }
+.text-xs { font-size: 22rpx; }
+.text-lg { font-size: 36rpx; }
+.text-xl { font-size: 48rpx; }
