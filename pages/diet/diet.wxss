@@ -73,17 +73,19 @@
 }
 
 .history-scroll {
-  white-space: nowrap;
+  display: flex;
+  gap: 8rpx;
 }
 
 .history-chip {
-  display: inline-flex;
+  position: relative;
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 108rpx;
-  height: 108rpx;
-  margin-right: 16rpx;
+  flex: 1;
+  min-width: 0;
+  height: 96rpx;
   border-radius: 24rpx;
   background: #F6F8FB;
   color: #7B8798;
@@ -91,21 +93,58 @@
   box-sizing: border-box;
 }
 
+.history-chip.today {
+  background: #FFF6E8;
+  color: #A16207;
+  border-color: #F3D08B;
+}
+
+.history-chip.has-data {
+  background: linear-gradient(180deg, #EFFAF3 0%, #E1F4E8 100%);
+  color: #1F6A47;
+  border-color: #9ED6B5;
+  box-shadow: inset 0 0 0 1rpx rgba(158, 214, 181, 0.35);
+}
+
+.history-chip.future {
+  background: #F3F4F6;
+  color: #B3BBC7;
+  border-color: #E5E7EB;
+  box-shadow: none;
+}
+
 .history-chip.active {
   background: linear-gradient(135deg, #1AAD74, #159764);
   color: #FFFFFF;
   box-shadow: 0 10rpx 22rpx rgba(26, 173, 116, 0.22);
+  border-color: transparent;
+}
+
+.history-chip.today.active,
+.history-chip.has-data.active,
+.history-chip.future.active {
+  color: #FFFFFF;
+}
+
+.history-chip-dot {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #1AAD74;
 }
 
 .history-chip-week {
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 700;
   line-height: 1;
 }
 
 .history-chip-day {
-  margin-top: 10rpx;
-  font-size: 24rpx;
+  margin-top: 8rpx;
+  font-size: 22rpx;
   line-height: 1;
 }
 

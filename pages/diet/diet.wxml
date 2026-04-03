@@ -20,18 +20,19 @@
         </picker>
       </view>
     </view>
-    <scroll-view class="history-scroll" scroll-x enable-flex show-scrollbar="{{false}}">
+    <view class="history-scroll">
       <view
         wx:for="{{recentDates}}"
         wx:key="date"
-        class="history-chip {{item.active ? 'active' : ''}}"
+        class="history-chip {{item.active ? 'active' : ''}} {{item.isToday ? 'today' : ''}} {{item.hasData ? 'has-data' : ''}} {{item.isFuture ? 'future' : ''}}"
         data-date="{{item.date}}"
         bindtap="selectDate"
       >
+        <view wx:if="{{item.hasData && !item.active}}" class="history-chip-dot"></view>
         <view class="history-chip-week">{{item.week}}</view>
         <view class="history-chip-day">{{item.day}}</view>
       </view>
-    </scroll-view>
+    </view>
   </view>
 
   <!-- ── Summary Ring Card ── -->

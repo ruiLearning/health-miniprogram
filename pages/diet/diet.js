@@ -43,7 +43,31 @@ Page({
     this.loadPage(this.data.selectedDate || app.globalData.today)
   },
 
+  parseDateStr(dateStr) {
+    const [y, m, d] = String(dateStr).split('-').map(Number)
+    return new Date(y, (m || 1) - 1, d || 1)
+  },
+
+  isFutureDate(dateStr) {
+    return dateStr > app.globalData.today
+  },
+
+  shiftDate(date, offset) {
+    const d = new Date(date)
+    d.setDate(d.getDate() + offset)
+    return d
+  },
+
+  buildWeekDates(selectedDate) {
+    const selected = this.parseDateStr(selectedDate)
+    const day = selected.getDay()
+    const mondayOffset = day === 0 ? -6 : 1 - day
+    const weekStart = this.shiftDate(selected, mondayOffset)
+    return Array.from({ length: 7 }, (_, index) => this.shiftDate(weekStart, index))
+  },
+
   loadPage(targetDate = app.globalData.today) {
+    if (this.isFutureDate(targetDate)) targetDate = app.globalData.today
     const profile = app.globalData.profile
     const today = app.globalData.today
     const dayData = app.getDayData(targetDate)
@@ -56,7 +80,7 @@ Page({
     let greeting = hour < 11 ? '早上好' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : '晚上好'
 
     // Date string
-    const now = new Date(targetDate)
+    const now = this.parseDateStr(targetDate)
     const weekDays = ['日', '一', '二', '三', '四', '五', '六']
     const dateStr = `${now.getMonth()+1}月${now.getDate()}日 星期${weekDays[now.getDay()]}`
     const recentDates = this.buildRecentDates(targetDate)
@@ -102,30 +126,41 @@ Page({
   buildRecentDates(selectedDate) {
     const labels = ['日', '一', '二', '三', '四', '五', '六']
     const today = app.globalData.today
-    const result = []
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
+    return this.buildWeekDates(selectedDate).map((d) => {
       const date = app.formatDate(d)
-      result.push({
+      const dayData = app.getDayData(date)
+      const nutrition = app.computeNutrition(dayData)
+      const hasData = nutrition.kcal > 0
+      const isFuture = this.isFutureDate(date)
+      return {
         date,
         day: `${d.getMonth() + 1}/${d.getDate()}`,
         week: date === today ? '今' : labels[d.getDay()],
-        active: date === selectedDate,
-      })
-    }
-    return result
+        active: !isFuture && date === selectedDate,
+        isToday: date === today,
+        hasData,
+        isFuture,
+      }
+    })
   },
 
   selectDate(e) {
     const date = e.currentTarget.dataset.date
     if (!date || date === this.data.selectedDate) return
+    if (this.isFutureDate(date)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     this.loadPage(date)
   },
 
   onDateChange(e) {
     const date = e.detail.value
     if (!date || date === this.data.selectedDate) return
+    if (this.isFutureDate(date)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     this.loadPage(date)
   },
 
@@ -168,6 +203,10 @@ Page({
 
   // ── Modal ──
   openFoodModal(e) {
+    if (this.isFutureDate(this.data.selectedDate || app.globalData.today)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     const meal = e.currentTarget.dataset.meal
     const cfg = MEAL_CONFIG[meal]
     this.setData({
@@ -338,6 +377,10 @@ Page({
     const food = this.data.filteredFoods.find(item => item.id === foodId)
     if (!food) return
     const currentDate = this.data.selectedDate || app.globalData.today
+    if (this.isFutureDate(currentDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     const dayData = app.getDayData(currentDate)
     const finalUnit = food.baseWeight
       ? `${food.name} (${food.customWeight}${food.baseWeight.unit})`
@@ -361,13 +404,17 @@ Page({
 
   deleteFood(e) {
     const { meal, uid } = e.currentTarget.dataset
+    const currentDate = this.data.selectedDate || app.globalData.today
+    if (this.isFutureDate(currentDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     wx.showModal({
       title: '删除食物',
       content: '确认删除这条记录吗？',
       confirmColor: '#EF4444',
       success: (res) => {
         if (!res.confirm) return
-        const currentDate = this.data.selectedDate || app.globalData.today
         const dayData = app.getDayData(currentDate)
         dayData.meals[meal] = dayData.meals[meal].filter(i => i.uid !== uid)
         app.saveDayData(currentDate, dayData)

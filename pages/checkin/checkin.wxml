@@ -13,12 +13,19 @@
         <view class="streak-sub">本月 <text class="streak-em">{{monthDays}}</text> 天 · <text class="streak-em">{{monthRate}}%</text></view>
       </view>
     </view>
+    <view class="checkin-date-head">
+      <view class="checkin-date-label">{{selectedWeightLabel}} · {{isTodayWeight ? '今日' : '历史记录'}}</view>
+      <picker mode="date" value="{{selectedWeightDate}}" end="{{todayDate}}" bindchange="onWeightDateChange">
+        <view class="checkin-date-picker">选择日期</view>
+      </picker>
+    </view>
     <!-- Week dots -->
     <view class="week-row">
-      <view class="week-item {{item.done ? 'done' : ''}} {{item.isToday ? 'today' : ''}} {{item.isFuture ? 'future' : ''}}"
-        wx:for="{{weekDays}}" wx:key="date">
+      <view class="week-item {{item.done ? 'done' : ''}} {{item.hasData ? 'has-data' : ''}} {{item.isToday ? 'today' : ''}} {{item.isFuture ? 'future' : ''}} {{item.isSelected ? 'selected' : ''}}"
+        wx:for="{{weekDays}}" wx:key="date" data-date="{{item.date}}" bindtap="selectWeightDate">
         <view class="wi-day">{{item.dayLabel}}</view>
         <view class="wi-dot">
+          <view wx:if="{{item.hasData && !item.done}}" class="wi-data-dot"></view>
           <text wx:if="{{item.done}}" class="wi-check">✓</text>
         </view>
         <view class="wi-date">{{item.dateLabel}}</view>
@@ -28,7 +35,7 @@
 
   <!-- ── Today's Tasks ── -->
   <view class="section-header">
-    <text class="section-title-text">今日任务</text>
+    <text class="section-title-text">当日任务</text>
     <view class="done-badge">
       <text class="done-num">{{doneTasks}}</text>
       <text class="done-total">/{{totalTasks}}</text>
@@ -57,7 +64,7 @@
   <view class="card water-card">
     <view class="water-top">
       <view class="water-title-wrap">
-        <text class="card-title-text">💧 今日饮水</text>
+        <text class="card-title-text">💧 当日饮水</text>
         <text class="water-sub">每杯 250ml</text>
       </view>
       <view class="water-stat">
@@ -83,7 +90,7 @@
 
   <!-- ── Mood ── -->
   <view class="card mood-card">
-    <text class="card-title-text">今日心情</text>
+    <text class="card-title-text">当日心情</text>
     <view class="mood-row">
       <view class="mood-item {{todayMood === item.val ? 'active' : ''}}"
         wx:for="{{moods}}" wx:key="val"
@@ -101,22 +108,7 @@
         <text class="card-title-text">📊 体重记录</text>
         <view class="weight-date-sub">{{selectedWeightLabel}} · {{isTodayWeight ? '今日' : '历史记录'}}</view>
       </view>
-      <picker mode="date" value="{{selectedWeightDate}}" end="{{todayDate}}" bindchange="onWeightDateChange">
-        <view class="weight-date-picker">选择日期</view>
-      </picker>
     </view>
-    <scroll-view class="weight-history-scroll" scroll-x enable-flex show-scrollbar="{{false}}">
-      <view
-        wx:for="{{recentWeightDates}}"
-        wx:key="date"
-        class="weight-history-chip {{item.active ? 'active' : ''}} {{item.hasWeight ? 'has-data' : ''}}"
-        data-date="{{item.date}}"
-        bindtap="selectWeightDate"
-      >
-        <view class="weight-history-week">{{item.week}}</view>
-        <view class="weight-history-day">{{item.day}}</view>
-      </view>
-    </scroll-view>
     <view class="weight-input-wrap">
       <input class="weight-input" type="digit" placeholder="输入体重"
         value="{{todayWeight}}" bindinput="onWeightInput"

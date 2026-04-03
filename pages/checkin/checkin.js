@@ -48,12 +48,35 @@ Page({
     this.loadPage(this.data.selectedWeightDate || app.globalData.today)
   },
 
+  parseDateStr(dateStr) {
+    const [y, m, d] = String(dateStr).split('-').map(Number)
+    return new Date(y, (m || 1) - 1, d || 1)
+  },
+
+  isFutureDate(dateStr) {
+    return dateStr > app.globalData.today
+  },
+
+  shiftDate(date, offset) {
+    const d = new Date(date)
+    d.setDate(d.getDate() + offset)
+    return d
+  },
+
+  buildWeekDates(selectedDate) {
+    const selected = this.parseDateStr(selectedDate)
+    const day = selected.getDay()
+    const mondayOffset = day === 0 ? -6 : 1 - day
+    const weekStart = this.shiftDate(selected, mondayOffset)
+    return Array.from({ length: 7 }, (_, index) => this.shiftDate(weekStart, index))
+  },
+
   loadPage(weightDate = app.globalData.today) {
+    if (this.isFutureDate(weightDate)) weightDate = app.globalData.today
     const today = app.globalData.today
-    const dayData = app.getDayData(today)
+    const dayData = app.getDayData(weightDate)
     const profile = app.globalData.profile
     const waterGoal = profile.waterGoal || 8
-    const weightDayData = app.getDayData(weightDate)
 
     // Tasks
     const taskStates = dayData.tasks || {}
@@ -73,7 +96,7 @@ Page({
     const waterCups = Array.from({ length: waterGoal }, (_, i) => i)
 
     // Week
-    const weekDays = this.buildWeekDays(today)
+    const weekDays = this.buildWeekDays(weightDate)
 
     // Streak & month stats
     const { streakDays, monthDays } = this.calcStreaks(today)
@@ -82,8 +105,8 @@ Page({
 
     // Mood & weight
     const todayMood = dayData.mood || ''
-    const todayWeight = weightDayData.weight ? String(weightDayData.weight) : ''
-    const { lastWeight, weightDiff } = this.getWeightDiff(weightDate, weightDayData.weight)
+    const todayWeight = dayData.weight ? String(dayData.weight) : ''
+    const { lastWeight, weightDiff } = this.getWeightDiff(weightDate, dayData.weight)
     const recentWeightDates = this.buildRecentWeightDates(weightDate)
     const selectedWeightLabel = this.formatWeightDateLabel(weightDate)
 
@@ -107,64 +130,68 @@ Page({
   buildRecentWeightDates(selectedDate) {
     const labels = ['日', '一', '二', '三', '四', '五', '六']
     const today = app.globalData.today
-    const result = []
-    for (let i = 9; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
+    return this.buildWeekDates(selectedDate).map((d) => {
       const date = app.formatDate(d)
       const dayData = app.getDayData(date)
-      result.push({
+      const isFuture = this.isFutureDate(date)
+      return {
         date,
         day: `${d.getMonth() + 1}/${d.getDate()}`,
         week: date === today ? '今' : labels[d.getDay()],
-        active: date === selectedDate,
+        active: !isFuture && date === selectedDate,
+        isToday: date === today,
+        isFuture,
         hasWeight: !!dayData.weight,
-      })
-    }
-    return result
+      }
+    })
   },
 
   formatWeightDateLabel(dateStr) {
-    const d = new Date(dateStr)
+    const d = this.parseDateStr(dateStr)
     return `${d.getMonth() + 1}月${d.getDate()}日`
   },
 
   selectWeightDate(e) {
     const date = e.currentTarget.dataset.date
     if (!date || date === this.data.selectedWeightDate) return
+    if (this.isFutureDate(date)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     this.loadPage(date)
   },
 
   onWeightDateChange(e) {
     const date = e.detail.value
     if (!date || date === this.data.selectedWeightDate) return
+    if (this.isFutureDate(date)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     this.loadPage(date)
   },
 
   buildWeekDays(today) {
-    const now = new Date()
-    const dayOfWeek = now.getDay() // 0=Sun
-    const monday = new Date(now)
-    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-
     const labels = ['一','二','三','四','五','六','日']
-    const result = []
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday)
-      d.setDate(monday.getDate() + i)
+    return this.buildWeekDates(today).map((d, i) => {
       const dateStr = app.formatDate(d)
       const dayData = app.getDayData(dateStr)
       const tasksDone = Object.values(dayData.tasks || {}).filter(Boolean).length
-      result.push({
+      const meals = dayData.meals || {}
+      const hasMeal = Object.values(meals).some((items) => (items || []).length > 0)
+      const hasData = tasksDone > 0 || (dayData.water || 0) > 0 || !!dayData.mood || !!dayData.weight || hasMeal
+      const isFuture = this.isFutureDate(dateStr)
+      return {
         date: dateStr,
         dayLabel: labels[i],
         dateLabel: d.getDate(),
         done: tasksDone >= 3,
+        hasData,
         isToday: dateStr === today,
-        isFuture: d > now,
-      })
-    }
-    return result
+        isFuture,
+        isSelected: !isFuture && dateStr === this.data.selectedWeightDate,
+      }
+    })
   },
 
   calcStreaks(today) {
@@ -215,10 +242,14 @@ Page({
 
   toggleTask(e) {
     const id = e.currentTarget.dataset.id
-    const today = app.globalData.today
-    const dayData = app.getDayData(today)
+    const selectedDate = this.data.selectedWeightDate || app.globalData.today
+    if (this.isFutureDate(selectedDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const dayData = app.getDayData(selectedDate)
     dayData.tasks[id] = !dayData.tasks[id]
-    app.saveDayData(today, dayData)
+    app.saveDayData(selectedDate, dayData)
 
     const tasks = this.data.tasks.map(t => {
       if (t.id !== id) return t
@@ -242,49 +273,65 @@ Page({
 
     this.setData({ tasks, doneTasks })
     // re-calc week streak
-    setTimeout(() => this.loadPage(), 100)
+    setTimeout(() => this.loadPage(selectedDate), 100)
   },
 
   toggleWater(e) {
     const idx = e.currentTarget.dataset.index
-    const today = app.globalData.today
-    const dayData = app.getDayData(today)
+    const selectedDate = this.data.selectedWeightDate || app.globalData.today
+    if (this.isFutureDate(selectedDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const dayData = app.getDayData(selectedDate)
     const newCount = idx + 1 === dayData.water ? idx : idx + 1
     dayData.water = newCount
-    app.saveDayData(today, dayData)
+    app.saveDayData(selectedDate, dayData)
     const waterPct = Math.min(100, Math.round(newCount / this.data.waterGoal * 100))
     wx.vibrateShort({ type: 'light' })
     this.setData({ waterCount: newCount, waterPct })
   },
 
   increaseWater() {
-    const today = app.globalData.today
-    const dayData = app.getDayData(today)
+    const selectedDate = this.data.selectedWeightDate || app.globalData.today
+    if (this.isFutureDate(selectedDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const dayData = app.getDayData(selectedDate)
     const goal = this.data.waterGoal
     if (dayData.water >= goal * 2) return
     dayData.water = (dayData.water || 0) + 1
-    app.saveDayData(today, dayData)
+    app.saveDayData(selectedDate, dayData)
     const waterPct = Math.min(100, Math.round(dayData.water / goal * 100))
     wx.vibrateShort({ type: 'light' })
     this.setData({ waterCount: dayData.water, waterPct })
   },
 
   decreaseWater() {
-    const today = app.globalData.today
-    const dayData = app.getDayData(today)
+    const selectedDate = this.data.selectedWeightDate || app.globalData.today
+    if (this.isFutureDate(selectedDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const dayData = app.getDayData(selectedDate)
     if (!dayData.water) return
     dayData.water--
-    app.saveDayData(today, dayData)
+    app.saveDayData(selectedDate, dayData)
     const waterPct = Math.min(100, Math.round(dayData.water / this.data.waterGoal * 100))
     this.setData({ waterCount: dayData.water, waterPct })
   },
 
   setMood(e) {
     const val = e.currentTarget.dataset.val
-    const today = app.globalData.today
-    const dayData = app.getDayData(today)
+    const selectedDate = this.data.selectedWeightDate || app.globalData.today
+    if (this.isFutureDate(selectedDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const dayData = app.getDayData(selectedDate)
     dayData.mood = val
-    app.saveDayData(today, dayData)
+    app.saveDayData(selectedDate, dayData)
     wx.vibrateShort({ type: 'light' })
     this.setData({ todayMood: val })
   },
@@ -300,6 +347,10 @@ Page({
       return
     }
     const targetDate = this.data.selectedWeightDate || app.globalData.today
+    if (this.isFutureDate(targetDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
     const dayData = app.getDayData(targetDate)
     dayData.weight = w
     app.saveDayData(targetDate, dayData)
