@@ -81,7 +81,7 @@
     </view>
     <view class="macro-dist">
       <view class="dist-ring-wrap">
-        <canvas canvas-id="macroChart" class="dist-canvas"></canvas>
+        <canvas canvas-id="macroChart" class="dist-canvas" style="width:{{macroCanvasW}}px;height:{{macroCanvasH}}px" width="{{macroCanvasW}}" height="{{macroCanvasH}}"></canvas>
       </view>
       <view class="dist-legend">
         <view class="dist-item" wx:for="{{macroItems}}" wx:key="label">
@@ -137,7 +137,7 @@
     </view>
 
     <!-- Chart -->
-    <canvas canvas-id="weightChart" class="weight-canvas"></canvas>
+    <canvas canvas-id="weightChart" class="weight-canvas" style="width:{{weightCanvasW}}px;height:{{weightCanvasH}}px" width="{{weightCanvasW}}" height="{{weightCanvasH}}"></canvas>
   </view>
 
   <!-- ── Task Rate ── -->

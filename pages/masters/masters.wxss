@@ -1,18 +1,48 @@
 /* pages/masters/masters.wxss */
 
+.page-wrap {
+  background: linear-gradient(180deg, #f7fbf8 0%, #f4f6fa 180rpx, #f4f6fa 100%);
+  min-height: 100vh;
+}
+
 .page-header {
   margin-bottom: 32rpx;
+  padding: 8rpx 4rpx 0;
 }
 .header-title {
   font-size: 48rpx;
   font-weight: 900;
-  color: #1A1A1A;
+  color: #173329;
   line-height: 1.2;
 }
 .header-sub {
   font-size: 24rpx;
-  color: #999;
-  margin-top: 8rpx;
+  color: #6f7d76;
+  margin-top: 10rpx;
+  line-height: 1.7;
+}
+
+.category-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-bottom: 24rpx;
+}
+
+.category-chip {
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.88);
+  color: #5f7068;
+  font-size: 22rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 20rpx rgba(35, 52, 45, 0.05);
+}
+
+.category-chip-active {
+  background: linear-gradient(135deg, #1d9b72, #157b61);
+  color: #ffffff;
+  box-shadow: 0 10rpx 22rpx rgba(29, 155, 114, 0.24);
 }
 
 /* Article card */
@@ -21,7 +51,7 @@
   border-radius: 24rpx;
   padding: 32rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10rpx 28rpx rgba(19, 45, 34, 0.06);
 }
 
 .card-source {
@@ -29,6 +59,21 @@
   align-items: center;
   gap: 12rpx;
   margin-bottom: 20rpx;
+}
+
+.card-category-line {
+  margin-bottom: 14rpx;
+}
+
+.card-category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #f2f8f4;
+  color: #1d7d5e;
+  font-size: 20rpx;
+  font-weight: 700;
 }
 .platform-tag {
   background: #FFF0F5;
@@ -54,7 +99,74 @@
   font-weight: 700;
   color: #1A1A1A;
   line-height: 1.5;
-  margin-bottom: 16rpx;
+  margin-bottom: 18rpx;
+}
+
+.card-hero {
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+}
+.hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+.hero-badge {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.22);
+}
+.hero-kicker {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.86);
+}
+.hero-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #FFFFFF;
+}
+.hero-subtitle {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.86);
+}
+.hero-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+.hero-highlight {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  font-size: 20rpx;
+}
+
+.hero-green {
+  background: linear-gradient(135deg, #1d9b72, #157b61);
+}
+.hero-amber {
+  background: linear-gradient(135deg, #ff9a4a, #e56e2a);
+}
+.hero-olive {
+  background: linear-gradient(135deg, #6e8a3f, #4d6a2b);
+}
+.hero-blue {
+  background: linear-gradient(135deg, #3d81e0, #225bb5);
+}
+.hero-charcoal {
+  background: linear-gradient(135deg, #38414c, #1f262f);
 }
 
 .card-tags {

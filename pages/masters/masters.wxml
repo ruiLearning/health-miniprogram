@@ -3,10 +3,22 @@
 
   <view class="page-header">
     <view class="header-title">大神训练法</view>
-    <view class="header-sub">精选大神健身饮食干货</view>
+    <view class="header-sub">精选大神健身饮食干货 + 10 条全网高影响力减脂方法</view>
   </view>
 
-  <view class="article-card" wx:for="{{articles}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+  <view class="category-row">
+    <view
+      wx:for="{{categories}}"
+      wx:key="key"
+      class="category-chip {{activeCategory === item.key ? 'category-chip-active' : ''}}"
+      data-category="{{item.key}}"
+      bindtap="selectCategory"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <view class="article-card" wx:for="{{filteredArticles}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
 
     <!-- Source bar -->
     <view class="card-source">
@@ -15,8 +27,26 @@
       <view class="card-date">{{item.date}}</view>
     </view>
 
+    <view class="card-category-line">
+      <view class="card-category-tag">
+        {{item.category === 'fatloss' ? '减脂方法' : item.category === 'nutrition' ? '饮食营养' : item.category === 'routine' ? '作息恢复' : item.category === 'habit' ? '习惯管理' : '健康认知'}}
+      </view>
+    </view>
+
     <!-- Title -->
     <view class="card-title">{{item.title}}</view>
+
+    <view wx:if="{{item.hero}}" class="card-hero hero-{{item.hero.theme}}">
+      <view class="hero-head">
+        <view class="hero-badge">{{item.hero.badge}}</view>
+        <view class="hero-kicker">{{item.hero.kicker}}</view>
+      </view>
+      <view class="hero-title">{{item.hero.title}}</view>
+      <view class="hero-subtitle">{{item.hero.subtitle}}</view>
+      <view class="hero-highlights" wx:if="{{item.highlights}}">
+        <view class="hero-highlight" wx:for="{{item.highlights}}" wx:key="*this" wx:for-item="hl">{{hl}}</view>
+      </view>
+    </view>
 
     <!-- Tags -->
     <view class="card-tags">

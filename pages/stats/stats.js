@@ -26,6 +26,12 @@ Page({
     bmiStatus: '',
     bmiColor: '',
     bmiPos: 50,
+    kcalCanvasW: 0,
+    kcalCanvasH: 0,
+    macroCanvasW: 152,
+    macroCanvasH: 152,
+    weightCanvasW: 0,
+    weightCanvasH: 0,
   },
 
   onShow() {
@@ -36,7 +42,6 @@ Page({
     const today = app.globalData.today
     const profile = app.globalData.profile
     const now = new Date()
-
     // ── 7 day kcal ──
     const kcalDays = []
     const goal = profile.kcalGoal || 2000
@@ -144,6 +149,10 @@ Page({
       weightCurrent, weightStart,
       weightChangeStr, weightChangeColor, weightDays,
       bmi, bmiStatus, bmiColor, bmiPos,
+      kcalCanvasW: Math.round(638 * app.globalData.windowWidth / 750),
+      kcalCanvasH: Math.round(320 * app.globalData.windowWidth / 750),
+      weightCanvasW: Math.round(638 * app.globalData.windowWidth / 750),
+      weightCanvasH: Math.round(300 * app.globalData.windowWidth / 750),
     })
 
     // Draw charts — use createSelectorQuery to get real rendered sizes
@@ -169,11 +178,10 @@ Page({
     }
   },
 
-  drawKcalChart(days, goal) {
+  drawKcalChart(days, goal, width, height) {
     const ratio = app.globalData.windowWidth / 750
-    // 750rpx screen - 24rpx*2 page padding - 32rpx*2 card padding = 638rpx content width
-    const W = Math.round(638 * ratio)
-    const H = Math.round(320 * ratio)
+    const W = Math.max(Math.round(width || 638 * ratio), 1)
+    const H = Math.max(Math.round(height || 320 * ratio), 1)
     const padL = Math.round(48 * ratio)
     const padR = Math.round(16 * ratio)
     const padT = Math.round(20 * ratio)
@@ -184,6 +192,7 @@ Page({
     const barW = chartW / days.length * 0.55
     const barGap = chartW / days.length
     const fontSize = Math.round(18 * ratio)
+    const minBarH = Math.max(Math.round(8 * ratio), 4)
 
     const ctx = wx.createCanvasContext('kcalChart', this)
     ctx.clearRect(0, 0, W, H)
@@ -232,25 +241,16 @@ Page({
     days.forEach((d, i) => {
       if (!d.kcal) return
       const x = padL + i * barGap + (barGap - barW) / 2
-      const barH = (d.kcal / maxKcal) * chartH
+      const rawBarH = (d.kcal / maxKcal) * chartH
+      const barH = Math.max(rawBarH, minBarH)
       const y = padT + chartH - barH
 
       const color = d.kcal >= goal * 1.1 ? '#EF4444'
         : d.kcal >= goal * 0.85 ? '#1AAD74'
         : '#F08C00'
 
-      ctx.beginPath()
       ctx.setFillStyle(color)
-      const r = Math.min(Math.round(8 * ratio), barH / 2)
-      ctx.moveTo(x + r, y)
-      ctx.lineTo(x + barW - r, y)
-      ctx.arcTo(x + barW, y, x + barW, y + r, r)
-      ctx.lineTo(x + barW, y + barH)
-      ctx.lineTo(x, y + barH)
-      ctx.lineTo(x, y + r)
-      ctx.arcTo(x, y, x + r, y, r)
-      ctx.closePath()
-      ctx.fill()
+      ctx.fillRect(x, y, barW, barH)
 
       if (d.kcal > 0) {
         ctx.setFillStyle('#666')
@@ -264,13 +264,13 @@ Page({
     ctx.draw()
   },
 
-  drawMacroChart(items, totalKcal) {
-    const W = 152
-    const H = 152
-    const cx = 76
-    const cy = 76
-    const r = 48
-    const lineW = 12
+  drawMacroChart(items, totalKcal, width, height) {
+    const W = Math.max(Math.round(width || 152), 1)
+    const H = Math.max(Math.round(height || 152), 1)
+    const cx = W / 2
+    const cy = H / 2
+    const r = Math.min(W, H) * 0.315
+    const lineW = Math.max(10, Math.round(Math.min(W, H) * 0.08))
 
     const ctx = wx.createCanvasContext('macroChart', this)
     ctx.clearRect(0, 0, W, H)
@@ -334,10 +334,10 @@ Page({
     ctx.draw()
   },
 
-  drawWeightChart(data) {
+  drawWeightChart(data, width, height) {
     const ratio = app.globalData.windowWidth / 750
-    const W = Math.round(638 * ratio)
-    const H = Math.round(300 * ratio)
+    const W = Math.max(Math.round(width || 638 * ratio), 1)
+    const H = Math.max(Math.round(height || 300 * ratio), 1)
     const padL = Math.round(56 * ratio)
     const padR = Math.round(16 * ratio)
     const padT = Math.round(24 * ratio)

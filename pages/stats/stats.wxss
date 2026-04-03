@@ -3,8 +3,9 @@
 .page-wrap {
   padding-top: 28rpx;
   background:
-    radial-gradient(circle at top left, rgba(80, 200, 120, 0.16), transparent 34%),
-    linear-gradient(180deg, #f5fbf8 0%, #f3f6fb 32%, #eef2f7 100%);
+    radial-gradient(circle at top left, rgba(255, 196, 96, 0.24), transparent 34%),
+    radial-gradient(circle at top right, rgba(105, 188, 255, 0.18), transparent 28%),
+    linear-gradient(180deg, #fffaf0 0%, #f8fbff 32%, #f2f6fb 100%);
 }
 
 .hero-card {
@@ -12,15 +13,16 @@
   margin-bottom: 24rpx;
   border-radius: 32rpx;
   background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 28%),
-    linear-gradient(145deg, #163c2f 0%, #245846 58%, #2f6c58 100%);
-  box-shadow: 0 18rpx 40rpx rgba(28, 69, 55, 0.22);
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.7), transparent 30%),
+    linear-gradient(145deg, #fff8de 0%, #eef8ff 52%, #f4fff4 100%);
+  border: 1rpx solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18rpx 40rpx rgba(83, 112, 142, 0.12);
 }
 
 .hero-kicker {
   font-size: 20rpx;
   letter-spacing: 3rpx;
-  color: rgba(230, 255, 243, 0.72);
+  color: #7c8e8b;
 }
 
 .hero-title {
@@ -28,14 +30,14 @@
   font-size: 52rpx;
   line-height: 1.08;
   font-weight: 700;
-  color: #ffffff;
+  color: #18343f;
 }
 
 .hero-subtitle {
   margin-top: 16rpx;
   font-size: 24rpx;
   line-height: 1.7;
-  color: rgba(234, 246, 240, 0.82);
+  color: #61717f;
 }
 
 .hero-metrics {
@@ -50,20 +52,21 @@
   min-width: 170rpx;
   padding: 22rpx 18rpx;
   border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1rpx rgba(223, 232, 239, 0.95);
 }
 
 .hero-metric-value {
   font-size: 40rpx;
   line-height: 1;
   font-weight: 700;
-  color: #ffffff;
+  color: #18343f;
 }
 
 .hero-metric-label {
   margin-top: 8rpx;
   font-size: 20rpx;
-  color: rgba(231, 244, 238, 0.76);
+  color: #738291;
 }
 
 .stats-row {
@@ -178,7 +181,7 @@
   height: 320rpx;
   display: block;
   border-radius: 22rpx;
-  background: linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%);
+  background: linear-gradient(180deg, #fffefe 0%, #f8fbff 100%);
 }
 
 .chart-labels {

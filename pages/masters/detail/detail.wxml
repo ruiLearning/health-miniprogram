@@ -12,11 +12,32 @@
     <view class="detail-tags">
       <view class="tag-item" wx:for="{{article.tags}}" wx:key="*this" wx:for-item="tag">#{{tag}}</view>
     </view>
+    <view wx:if="{{article.hero}}" class="detail-hero hero-{{article.hero.theme}}">
+      <view class="hero-badge-row">
+        <view class="detail-hero-badge">{{article.hero.badge}}</view>
+        <view class="detail-hero-kicker">{{article.hero.kicker}}</view>
+      </view>
+      <view class="detail-hero-title">{{article.hero.title}}</view>
+      <view class="detail-hero-subtitle">{{article.hero.subtitle}}</view>
+      <view class="detail-hero-highlights" wx:if="{{article.highlights}}">
+        <view class="detail-hero-highlight" wx:for="{{article.highlights}}" wx:key="*this" wx:for-item="hl">{{hl}}</view>
+      </view>
+    </view>
   </view>
 
   <!-- Intro -->
   <view class="detail-card">
     <view class="intro-text">{{article.intro}}</view>
+  </view>
+
+  <view class="detail-card facts-card" wx:if="{{article.quickFacts}}">
+    <view class="facts-title">速读重点</view>
+    <view class="facts-grid">
+      <view class="fact-item" wx:for="{{article.quickFacts}}" wx:key="label">
+        <view class="fact-label">{{item.label}}</view>
+        <view class="fact-value">{{item.value}}</view>
+      </view>
+    </view>
   </view>
 
   <!-- Sections -->
@@ -69,3 +90,8 @@
   </view>
 
 </scroll-view>
+
+<view wx:elif="{{loadFailed}}" class="detail-empty">
+  <view class="detail-empty-title">内容加载失败</view>
+  <view class="detail-empty-sub">返回大神页重新点开一次，详细内容会重新加载。</view>
+</view>
