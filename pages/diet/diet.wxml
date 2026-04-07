@@ -177,7 +177,7 @@
           </view>
         </view>
 
-        <view wx:if="{{item.plan}}" class="meal-quick-add">
+        <view wx:if="{{item.plan && item.plan.enabled}}" class="meal-quick-add">
           <view class="meal-quick-add-head">
             <view class="meal-quick-add-title">快捷添加</view>
             <view class="meal-quick-add-tip">点一下直接加到{{item.name}}</view>
@@ -257,7 +257,7 @@
         </view>
 
       </view>
-      <view wx:if="{{item.plan}}" class="meal-plan-card meal-plan meal-plan-{{item.plan.theme}}">
+      <view wx:if="{{item.plan && item.plan.enabled}}" class="meal-plan-card meal-plan meal-plan-{{item.plan.theme}}">
         <view class="meal-plan-head">
           <view class="meal-plan-section-title">本餐建议</view>
           <view class="meal-plan-badge">{{item.plan.badge}}方案</view>
@@ -283,26 +283,31 @@
             <view class="meal-plan-target-pill coral-soft">脂肪 {{item.plan.fat}}g</view>
             <view class="meal-plan-target-pill kcal-soft">约 {{item.plan.kcal}}千卡</view>
           </view>
-          <view
-            class="meal-plan-suggest-inline"
-            wx:if="{{item.plan.options && item.plan.options.length}}"
-          >
+          <view wx:if="{{item.plan.displayOptions && item.plan.displayOptions.length}}">
             <view
-              class="meal-plan-suggest-inline-item"
-              wx:for="{{item.plan.options[0].items}}"
-              wx:for-item="planFood"
-              wx:key="text"
-              data-meal="{{item.id}}"
-              data-name="{{planFood.name}}"
-              data-weight="{{planFood.weight}}"
-              catchtap="addPlanFood"
-            >{{planFood.text}}</view>
-            <view
-              class="meal-plan-suggest-inline-action"
-              data-meal="{{item.id}}"
-              data-index="{{0}}"
-              bindtap="addPlanCombo"
-            >整体添加</view>
+              class="meal-plan-suggest-inline"
+              wx:for="{{item.plan.displayOptions}}"
+              wx:for-item="planOption"
+              wx:for-index="planIndex"
+              wx:key="label"
+            >
+              <view
+                class="meal-plan-suggest-inline-item"
+                wx:for="{{planOption.items}}"
+                wx:for-item="planFood"
+                wx:key="text"
+                data-meal="{{item.id}}"
+                data-name="{{planFood.name}}"
+                data-weight="{{planFood.weight}}"
+                catchtap="addPlanFood"
+              >{{planFood.text}}</view>
+              <view
+                class="meal-plan-suggest-inline-action"
+                data-meal="{{item.id}}"
+                data-index="{{planIndex}}"
+                bindtap="addPlanCombo"
+              >整体添加</view>
+            </view>
           </view>
           <view class="meal-plan-suggest-text" wx:else>{{item.plan.target}}</view>
         </view>

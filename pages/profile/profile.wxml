@@ -113,6 +113,39 @@
         <text class="input-unit">杯</text>
       </view>
     </view>
+
+    <view class="form-divider"></view>
+
+    <view class="form-row meal-switch-row">
+      <view>
+        <view class="form-label">参与分配餐次</view>
+        <view class="form-help">关闭某一餐后，热量会自动分到剩下启用的餐次</view>
+      </view>
+    </view>
+    <view class="meal-switches">
+      <view class="meal-switch {{enabledMeals.breakfast ? 'active' : ''}}" data-meal="breakfast" bindtap="toggleMealEnabled">早餐</view>
+      <view class="meal-switch {{enabledMeals.lunch ? 'active' : ''}}" data-meal="lunch" bindtap="toggleMealEnabled">午餐</view>
+      <view class="meal-switch {{enabledMeals.dinner ? 'active' : ''}}" data-meal="dinner" bindtap="toggleMealEnabled">晚餐</view>
+      <view class="meal-switch {{enabledMeals.snack ? 'active' : ''}}" data-meal="snack" bindtap="toggleMealEnabled">加餐</view>
+    </view>
+
+    <view wx:if="{{enabledMeals.snack}}" class="form-divider"></view>
+
+    <view wx:if="{{enabledMeals.snack}}" class="form-row meal-switch-row">
+      <view>
+        <view class="form-label">加餐位置</view>
+        <view class="form-help">会影响饮食页里加餐的展示顺序</view>
+      </view>
+    </view>
+    <view wx:if="{{enabledMeals.snack}}" class="meal-switches">
+      <view
+        class="meal-switch {{snackPosition === item.key ? 'active' : ''}}"
+        wx:for="{{snackPositionOptions}}"
+        wx:key="key"
+        data-position="{{item.key}}"
+        bindtap="setSnackPosition"
+      >{{item.label}}</view>
+    </view>
   </view>
 
   <!-- ── Auto calc tip ── -->

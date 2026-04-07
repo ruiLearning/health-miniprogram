@@ -9,6 +9,12 @@ const ACTIVITY_OPTIONS = [
   { label: '极度活动 (每天高强度)', val: 1.9  },
 ]
 
+const SNACK_POSITION_OPTIONS = [
+  { key: 'before_lunch', label: '午餐前' },
+  { key: 'before_dinner', label: '晚餐前' },
+  { key: 'after_dinner', label: '晚餐后' },
+]
+
 Page({
   data: {
     profile: {},
@@ -47,8 +53,18 @@ Page({
       maintain: 0,
       gain: 0,
     },
+    enabledMeals: {
+      breakfast: true,
+      lunch: true,
+      dinner: true,
+      snack: true,
+    },
+    snackPosition: 'after_dinner',
+    snackPositionOptions: SNACK_POSITION_OPTIONS,
     isDirty: false,
     savedProfile: null,
+    savedEnabledMeals: null,
+    savedSnackPosition: 'after_dinner',
   },
 
   onShow() {
@@ -56,8 +72,12 @@ Page({
   },
 
   loadProfile() {
-    const p = app.globalData.profile || {}
-    const savedProfile = wx.getStorageSync('hc_profile') || p
+    const globalProfile = app.globalData.profile || {}
+    const savedProfile = wx.getStorageSync('hc_profile') || globalProfile
+    const p = savedProfile
+    app.globalData.profile = savedProfile
+    const enabledMeals = this.getMealSelection()
+    const snackPosition = app.getSnackPosition()
     const activityIndex = ACTIVITY_OPTIONS.findIndex(o => o.val === p.activity) ?? 2
 
     const bmi = this.calcBMI(p)
@@ -96,13 +116,27 @@ Page({
       healthyWeightHint: headerHints.healthyWeightHint,
       healthyWeightHintClass: headerHints.healthyWeightHintClass,
       calorieGuide,
+      enabledMeals,
+      snackPosition,
       bmr: Math.round(bmr),
       tdee,
       avatarLoadFailed: false,
       displayInitial: displayName.charAt(0),
       isDirty: false,
       savedProfile,
+      savedEnabledMeals: enabledMeals,
+      savedSnackPosition: snackPosition,
     })
+  },
+
+  getMealSelection() {
+    const saved = wx.getStorageSync('hc_meal_plan_enabled')
+    return {
+      breakfast: saved ? saved.breakfast !== false : true,
+      lunch: saved ? saved.lunch !== false : true,
+      dinner: saved ? saved.dinner !== false : true,
+      snack: saved ? saved.snack !== false : true,
+    }
   },
 
   calcBMI(p) {
@@ -251,9 +285,56 @@ Page({
 
   updateDirtyState(form = this.data.form) {
     const savedProfile = this.data.savedProfile || wx.getStorageSync('hc_profile') || {}
+    const savedEnabledMeals = this.data.savedEnabledMeals || this.getMealSelection()
+    const savedSnackPosition = this.data.savedSnackPosition || app.getSnackPosition()
     const currentProfile = this.buildProfileFromForm(form)
-    const isDirty = JSON.stringify(currentProfile) !== JSON.stringify(savedProfile)
+    const currentEnabledMeals = this.data.enabledMeals || this.getMealSelection()
+    const currentSnackPosition = this.data.snackPosition || app.getSnackPosition()
+    const isDirty =
+      JSON.stringify(currentProfile) !== JSON.stringify(savedProfile) ||
+      JSON.stringify(currentEnabledMeals) !== JSON.stringify(savedEnabledMeals) ||
+      currentSnackPosition !== savedSnackPosition
     this.setData({ isDirty })
+  },
+
+  toggleMealEnabled(e) {
+    const meal = e.currentTarget.dataset.meal
+    const current = this.data.enabledMeals || this.getMealSelection()
+    const next = { ...current, [meal]: current[meal] === false }
+    if (!Object.values(next).some(Boolean)) {
+      wx.showToast({ title: '至少保留一餐参与分配', icon: 'none' })
+      return
+    }
+    const turningOff = current[meal] !== false
+    if (turningOff) {
+      const mealNameMap = {
+        breakfast: '早餐',
+        lunch: '午餐',
+        dinner: '晚餐',
+        snack: '加餐',
+      }
+      wx.showModal({
+        title: `关闭${mealNameMap[meal] || '该餐'}`,
+        content: `关闭后会清空所有日期里的${mealNameMap[meal] || '该餐'}记录，是否继续？`,
+        confirmColor: '#EF4444',
+        success: (res) => {
+          if (!res.confirm) return
+          app.clearMealFromAllDays(meal)
+          this.setData({ enabledMeals: next })
+          this.updateDirtyState()
+        }
+      })
+      return
+    }
+    this.setData({ enabledMeals: next })
+    this.updateDirtyState()
+  },
+
+  setSnackPosition(e) {
+    const position = e.currentTarget.dataset.position
+    if (!position || position === this.data.snackPosition) return
+    this.setData({ snackPosition: position })
+    this.updateDirtyState()
   },
 
   applyBodyMetrics(nextForm, options = {}) {
@@ -487,6 +568,8 @@ Page({
 
     app.globalData.profile = profile
     wx.setStorageSync('hc_profile', profile)
+    wx.setStorageSync('hc_meal_plan_enabled', this.data.enabledMeals)
+    app.saveSnackPosition(this.data.snackPosition)
 
     const bmi = this.calcBMI(profile)
     const bmiStatus = this.getBMIStatus(bmi)
@@ -510,10 +593,14 @@ Page({
       healthyWeightHint: headerHints.healthyWeightHint,
       healthyWeightHintClass: headerHints.healthyWeightHintClass,
       calorieGuide,
+      enabledMeals: this.data.enabledMeals,
+      snackPosition: this.data.snackPosition,
       bmr: Math.round(bmr),
       tdee,
       isDirty: false,
       savedProfile: profile,
+      savedEnabledMeals: this.data.enabledMeals,
+      savedSnackPosition: this.data.snackPosition,
     })
 
     wx.showToast({ title: '保存成功 🎉', icon: 'success', duration: 1500 })

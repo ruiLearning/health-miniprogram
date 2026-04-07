@@ -549,6 +549,7 @@
   padding: 6rpx 16rpx;
   border-radius: 40rpx;
 }
+
 .meal-clear-btn {
   padding: 10rpx 18rpx;
   border-radius: 999rpx;

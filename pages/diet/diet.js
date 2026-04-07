@@ -109,6 +109,13 @@ Page({
     filteredFoods: [],
     customAmounts: {},
     customWeights: {},
+    enabledMeals: {
+      breakfast: true,
+      lunch: true,
+      dinner: true,
+      snack: true,
+    },
+    snackPosition: 'after_dinner',
   },
 
   onShow() {
@@ -150,14 +157,44 @@ Page({
     return Array.from({ length: 7 }, (_, index) => this.shiftDate(weekStart, index))
   },
 
+  getMealSelection() {
+    const saved = wx.getStorageSync('hc_meal_plan_enabled')
+    const defaults = {
+      breakfast: true,
+      lunch: true,
+      dinner: true,
+      snack: true,
+    }
+    if (!saved) return defaults
+    return {
+      breakfast: saved.breakfast !== false,
+      lunch: saved.lunch !== false,
+      dinner: saved.dinner !== false,
+      snack: saved.snack !== false,
+    }
+  },
+
+  saveMealSelection(enabledMeals) {
+    wx.setStorageSync('hc_meal_plan_enabled', enabledMeals)
+  },
+
+  getMealOrder(snackPosition = app.getSnackPosition()) {
+    if (snackPosition === 'before_lunch') return ['breakfast', 'snack', 'lunch', 'dinner']
+    if (snackPosition === 'before_dinner') return ['breakfast', 'lunch', 'snack', 'dinner']
+    return ['breakfast', 'lunch', 'dinner', 'snack']
+  },
+
   loadPage(targetDate = app.globalData.today) {
     if (this.isFutureDate(targetDate)) targetDate = app.globalData.today
-    const profile = app.globalData.profile
+    const profile = wx.getStorageSync('hc_profile') || app.globalData.profile
+    app.globalData.profile = profile
     const today = app.globalData.today
     const dayData = app.getDayData(targetDate)
     const nutrition = app.computeNutrition(dayData)
     const macroPlan = app.getTanMacroPlan(profile)
-    const tanMealCards = this.buildTanMealCards(profile, macroPlan)
+    const enabledMeals = this.getMealSelection()
+    const snackPosition = app.getSnackPosition()
+    const tanMealCards = this.buildTanMealCards(profile, macroPlan, enabledMeals)
     const tanAdjustTips = this.buildTanAdjustTips()
     const goal = macroPlan.kcalTarget || profile.kcalGoal || 2000
     const bmr = this.calcBMR(profile)
@@ -173,10 +210,14 @@ Page({
     const recentDates = this.buildRecentDates(targetDate)
 
     // Build meals array
-    const meals = ['breakfast', 'lunch', 'dinner', 'snack'].map(mid => {
+    const mealMap = ['breakfast', 'lunch', 'dinner', 'snack'].reduce((acc, mid) => {
       const rawItems = (dayData.meals[mid] || []).map(i => this.prepareLoggedItem({ ...i }))
-      return this.decorateMeal(mid, rawItems, tanMealCards)
-    })
+      acc[mid] = this.decorateMeal(mid, rawItems, tanMealCards)
+      return acc
+    }, {})
+    const meals = this.getMealOrder(snackPosition)
+      .map(mid => mealMap[mid])
+      .filter(meal => meal && enabledMeals[meal.id] !== false)
 
     const carbTarget = macroPlan.carbTarget || Math.round(goal * 0.5 / 4)
     const protTarget = macroPlan.protTarget || Math.round(goal * 0.2 / 4)
@@ -197,6 +238,8 @@ Page({
       macroPlan,
       tanMealCards,
       tanAdjustTips,
+      enabledMeals,
+      snackPosition,
       kcalPct, carbPct, protPct, fatPct,
       remainKcal: Math.max(0, goal - nutrition.kcal),
       burnKcal: Math.round(bmr),
@@ -211,17 +254,17 @@ Page({
     const mealNutrition = this.computeMealNutrition(items)
     const totalKcal = mealNutrition.kcal
     const mealPlan = tanMealCards.find(card => card.badge === cfg.name)
-    const mealRemain = mealPlan ? {
+    const mealRemain = mealPlan && mealPlan.enabled ? {
       carb: this.roundMacro(Math.max(0, mealPlan.carb - mealNutrition.carb)),
       prot: this.roundMacro(Math.max(0, mealPlan.prot - mealNutrition.prot)),
       fat: this.roundMacro(Math.max(0, mealPlan.fat - mealNutrition.fat)),
     } : null
-    const mealOver = mealPlan ? {
+    const mealOver = mealPlan && mealPlan.enabled ? {
       carb: this.roundMacro(Math.max(0, mealNutrition.carb - mealPlan.carb)),
       prot: this.roundMacro(Math.max(0, mealNutrition.prot - mealPlan.prot)),
       fat: this.roundMacro(Math.max(0, mealNutrition.fat - mealPlan.fat)),
     } : null
-    const remainItems = mealPlan ? [
+    const remainItems = mealPlan && mealPlan.enabled ? [
       {
         key: 'carb',
         label: '碳水',
@@ -253,6 +296,7 @@ Page({
       itemCount: items.length,
       totalKcal: Math.round(totalKcal),
       plan: mealPlan || null,
+      planEnabled: mealPlan ? mealPlan.enabled !== false : true,
       eaten: mealNutrition,
       remain: mealRemain,
       over: mealOver,
@@ -645,14 +689,22 @@ Page({
     return Math.min(max, Math.max(min, Math.round(value || 0)))
   },
 
-  buildMealTargets(macroPlan, splits) {
+  buildMealTargets(macroPlan, splits, enabledMeals = {}) {
     const keys = Object.keys(splits)
     const result = {}
+    const activeKeys = keys.filter(key => enabledMeals[key] !== false)
     const distribute = (total, field) => {
+      const ratioSum = activeKeys.reduce((sum, key) => sum + (splits[key][field] || 0), 0) || 1
       let used = 0
       keys.forEach((key, index) => {
-        const ratio = splits[key][field]
-        const value = index === keys.length - 1 ? total - used : Math.round(total * ratio)
+        if (enabledMeals[key] === false) {
+          if (!result[key]) result[key] = {}
+          result[key][field] = 0
+          return
+        }
+        const ratio = (splits[key][field] || 0) / ratioSum
+        const currentActiveIndex = activeKeys.indexOf(key)
+        const value = currentActiveIndex === activeKeys.length - 1 ? total - used : Math.round(total * ratio)
         if (!result[key]) result[key] = {}
         result[key][field] = value
         used += value
@@ -667,7 +719,7 @@ Page({
     return result
   },
 
-  buildTanMealCards(profile, macroPlan) {
+  buildTanMealCards(profile, macroPlan, enabledMeals = this.data.enabledMeals || {}) {
     const weight = Number(profile.weight) || 0
     const splits = {
       breakfast: { carb: 0.24, prot: 0.22, fat: 0.2 },
@@ -676,7 +728,7 @@ Page({
       snack: { carb: 0.1, prot: 0.15, fat: 0.15 }
     }
 
-    const mealTargets = this.buildMealTargets(macroPlan, splits)
+    const mealTargets = this.buildMealTargets(macroPlan, splits, enabledMeals)
 
     const breakfastOats = this.clampValue(
       this.getScaledFoodWeight('燕麦', 'carb', mealTargets.breakfast.carb * 0.72, 60),
@@ -958,6 +1010,7 @@ Page({
     return [
       {
         ...TAN_MEAL_TEMPLATES.breakfast,
+        enabled: enabledMeals.breakfast !== false,
         carb: mealTargets.breakfast.carb,
         prot: mealTargets.breakfast.prot,
         fat: mealTargets.breakfast.fat,
@@ -965,9 +1018,11 @@ Page({
         macroLine: `碳水 ${mealTargets.breakfast.carb}g · 蛋白 ${mealTargets.breakfast.prot}g · 脂肪 ${mealTargets.breakfast.fat}g · 约 ${mealTargets.breakfast.kcal}千卡`,
         target: breakfastOptions[0].text,
         options: breakfastOptions,
+        displayOptions: breakfastOptions.slice(0, 2),
       },
       {
         ...TAN_MEAL_TEMPLATES.lunch,
+        enabled: enabledMeals.lunch !== false,
         carb: mealTargets.lunch.carb,
         prot: mealTargets.lunch.prot,
         fat: mealTargets.lunch.fat,
@@ -975,9 +1030,11 @@ Page({
         macroLine: `碳水 ${mealTargets.lunch.carb}g · 蛋白 ${mealTargets.lunch.prot}g · 脂肪 ${mealTargets.lunch.fat}g · 约 ${mealTargets.lunch.kcal}千卡`,
         target: lunchOptions[0].text,
         options: lunchOptions,
+        displayOptions: lunchOptions.slice(0, 2),
       },
       {
         ...TAN_MEAL_TEMPLATES.dinner,
+        enabled: enabledMeals.dinner !== false,
         carb: mealTargets.dinner.carb,
         prot: mealTargets.dinner.prot,
         fat: mealTargets.dinner.fat,
@@ -985,9 +1042,11 @@ Page({
         macroLine: `碳水 ${mealTargets.dinner.carb}g · 蛋白 ${mealTargets.dinner.prot}g · 脂肪 ${mealTargets.dinner.fat}g · 约 ${mealTargets.dinner.kcal}千卡`,
         target: dinnerOptions[0].text,
         options: dinnerOptions,
+        displayOptions: dinnerOptions.slice(0, 2),
       },
       {
         ...TAN_MEAL_TEMPLATES.snack,
+        enabled: enabledMeals.snack !== false,
         carb: mealTargets.snack.carb,
         prot: mealTargets.snack.prot,
         fat: mealTargets.snack.fat,
@@ -995,6 +1054,7 @@ Page({
         macroLine: `碳水 ${mealTargets.snack.carb}g · 蛋白 ${mealTargets.snack.prot}g · 脂肪 ${mealTargets.snack.fat}g · 约 ${mealTargets.snack.kcal}千卡`,
         target: snackOptions[0].text,
         options: snackOptions,
+        displayOptions: snackOptions.slice(0, 2),
       }
     ]
   },
@@ -1269,6 +1329,43 @@ Page({
       }
     })
     if (!addedCount) return
+    this.loadPage(currentDate)
+  },
+
+  toggleMealPlan(e) {
+    const { meal } = e.currentTarget.dataset
+    const currentDate = this.data.selectedDate || app.globalData.today
+    if (this.isFutureDate(currentDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const current = this.data.enabledMeals || this.getMealSelection()
+    const next = { ...current, [meal]: current[meal] === false }
+    const activeCount = Object.values(next).filter(Boolean).length
+    if (!activeCount) {
+      wx.showToast({ title: '至少保留一餐参与分配', icon: 'none' })
+      return
+    }
+    const turningOff = current[meal] !== false
+    const dayData = app.getDayData(currentDate)
+    const mealItems = (dayData.meals[meal] || [])
+    if (turningOff && mealItems.length) {
+      const mealInfo = (this.data.meals || []).find(item => item.id === meal)
+      const mealName = mealInfo ? mealInfo.name : '该餐'
+      wx.showModal({
+        title: `关闭${mealName}`,
+        content: `${mealName}里已有食物记录，关闭后会清空所有日期里的${mealName}记录，是否继续？`,
+        confirmColor: '#EF4444',
+        success: (res) => {
+          if (!res.confirm) return
+          app.clearMealFromAllDays(meal)
+          this.saveMealSelection(next)
+          this.loadPage(currentDate)
+        }
+      })
+      return
+    }
+    this.saveMealSelection(next)
     this.loadPage(currentDate)
   },
 

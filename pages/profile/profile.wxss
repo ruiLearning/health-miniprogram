@@ -142,6 +142,45 @@
   margin: 4rpx 0;
 }
 
+.meal-switch-row {
+  align-items: flex-start;
+  margin-top: 8rpx;
+}
+
+.form-help {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #97A0AC;
+}
+
+.meal-switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.meal-switch {
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: #F3F4F6;
+  color: #7C8798;
+  font-size: 24rpx;
+  font-weight: 700;
+  border: 2rpx solid transparent;
+}
+
+.meal-switch.active {
+  background: #E8F7EF;
+  color: #148457;
+  border-color: rgba(20, 132, 87, 0.18);
+}
+
+.meal-switch:active {
+  opacity: 0.84;
+}
+
 /* Gender buttons */
 .gender-row {
   display: flex;

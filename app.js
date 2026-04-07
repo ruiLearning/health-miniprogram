@@ -134,6 +134,31 @@ App({
     wx.setStorageSync(key, data)
   },
 
+  getSnackPosition() {
+    const saved = wx.getStorageSync('hc_snack_position')
+    return saved || 'after_dinner'
+  },
+
+  saveSnackPosition(position) {
+    wx.setStorageSync('hc_snack_position', position || 'after_dinner')
+  },
+
+  clearMealFromAllDays(meal) {
+    const info = wx.getStorageInfoSync()
+    const keys = (info.keys || []).filter(key => key.startsWith('hc_day_'))
+    let clearedMeals = 0
+    let clearedItems = 0
+    keys.forEach(key => {
+      const data = wx.getStorageSync(key)
+      if (!data || !data.meals || !Array.isArray(data.meals[meal]) || !data.meals[meal].length) return
+      clearedItems += data.meals[meal].length
+      data.meals[meal] = []
+      wx.setStorageSync(key, data)
+      clearedMeals += 1
+    })
+    return { clearedMeals, clearedItems }
+  },
+
   getTanMacroPlan(profile = {}) {
     const weight = Number(profile.weight) || 0
     const gender = profile.gender === 'female' ? 'female' : 'male'
