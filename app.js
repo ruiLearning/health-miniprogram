@@ -47,7 +47,7 @@ App({
   initFoodDB() {
     this.globalData.foodDB = [
       // 主食
-      { id: 'f01', name: '米饭', unit: '碗 (200g)', kcal: 232, carb: 50, prot: 4, fat: 0.5, cat: '主食' },
+      { id: 'f01', name: '熟米饭', unit: '碗 (200g)', kcal: 232, carb: 50, prot: 4, fat: 0.5, cat: '主食' },
       { id: 'f12', name: '生米', unit: '份 (93g)', kcal: 321, carb: 72.1, prot: 6.7, fat: 0.7, cat: '主食', source: '谭成义' },
       { id: 'f02', name: '全麦面包', unit: '片 (35g)', kcal: 88, carb: 16, prot: 3.5, fat: 1.2, cat: '主食' },
       { id: 'f03', name: '燕麦粥', unit: '碗 (200g)', kcal: 150, carb: 27, prot: 5, fat: 2.5, cat: '主食' },
@@ -63,7 +63,7 @@ App({
       // 蛋白质
       { id: 'p01', name: '鸡胸肉', unit: '份 (100g)', kcal: 133, carb: 0, prot: 25, fat: 3.1, cat: '蛋白质' },
       { id: 'p02', name: '水煮蛋', unit: '个 (60g)', kcal: 78, carb: 0.6, prot: 6.5, fat: 5.1, cat: '蛋白质' },
-      { id: 'p17', name: '鸡蛋', unit: '个 (60g)', kcal: 78, carb: 0.6, prot: 6.5, fat: 5.1, cat: '蛋白质', source: '谭成义' },
+      { id: 'p17', name: '鸡蛋(不吃蛋黄)', unit: '个 (33g)', kcal: 17, carb: 0.2, prot: 3.6, fat: 0.1, cat: '蛋白质', source: '谭成义' },
       { id: 'p11', name: '全蛋', unit: '个 (60g)', kcal: 78, carb: 0.6, prot: 6.5, fat: 5.1, cat: '蛋白质', source: '谭成义' },
       { id: 'p03', name: '三文鱼', unit: '份 (100g)', kcal: 142, carb: 0, prot: 20, fat: 6.3, cat: '蛋白质' },
       { id: 'p12', name: '龙利鱼', unit: '份 (100g)', kcal: 83, carb: 0, prot: 17.6, fat: 1.2, cat: '蛋白质', source: '谭成义' },

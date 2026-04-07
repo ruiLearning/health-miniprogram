@@ -202,7 +202,7 @@
                 <view class="food-name">{{food.name}}</view>
                 <view class="food-kcal">{{food.kcal}} 千卡</view>
               </view>
-              <view class="food-sub">{{food.unit}}</view>
+              <view class="food-sub">{{food.displayServing}}</view>
               <view class="food-main-row" catchtap="noop">
                 <view class="food-macro-pills">
                   <view wx:if="{{food.isPrimaryCarb}}" class="food-macro-pill amber-soft food-macro-pill-primary">碳水 {{food.carb}}g</view>
@@ -314,7 +314,7 @@
             <view>
               <view class="mfi-name">{{item.name}}</view>
               <view class="mfi-sub">
-                {{item.unit}} · 碳水{{item.displayCarb}}g · 蛋白{{item.displayProt}}g · 脂肪{{item.displayFat}}g
+                {{item.displayServing}} · 碳水{{item.displayCarb}}g · 蛋白{{item.displayProt}}g · 脂肪{{item.displayFat}}g
                 <text wx:if="{{item.source === '谭成义'}}" class="mfi-source" style="color:{{item.sourceColor}}"> · 谭成义推荐</text>
               </view>
               <view class="mfi-custom-row" catchtap="noop">

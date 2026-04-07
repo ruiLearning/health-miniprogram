@@ -20,8 +20,8 @@ const TAN_MEAL_TEMPLATES = {
     theme: 'amber',
     foods: [
       { name: '燕麦', tone: 'grain', quickAdd: '燕麦' },
-      { name: '鸡蛋', tone: 'protein', quickAdd: '鸡蛋' },
       { name: '全蛋', tone: 'protein', quickAdd: '全蛋' },
+      { name: '鸡蛋(不吃蛋黄)', tone: 'protein', quickAdd: '鸡蛋(不吃蛋黄)' },
       { name: '蓝莓', tone: 'fruit', quickAdd: '蓝莓' },
       { name: '南瓜子', tone: 'fat', quickAdd: '南瓜子' }
     ],
@@ -32,7 +32,7 @@ const TAN_MEAL_TEMPLATES = {
     badge: '午餐',
     theme: 'green',
     foods: [
-      { name: '米饭', tone: 'grain', quickAdd: '米饭' },
+      { name: '熟米饭', tone: 'grain', quickAdd: '熟米饭' },
       { name: '生米', tone: 'grain', quickAdd: '生米' },
       { name: '龙利鱼', tone: 'protein', quickAdd: '龙利鱼' },
       { name: '巴沙鱼', tone: 'protein', quickAdd: '巴沙鱼' },
@@ -73,7 +73,8 @@ const TAN_MEAL_TEMPLATES = {
       { name: '低脂牛奶', tone: 'protein', quickAdd: '低脂牛奶' },
       { name: '蓝莓', tone: 'fruit', quickAdd: '蓝莓' },
       { name: '香蕉', tone: 'fruit', quickAdd: '香蕉' },
-      { name: '鸡蛋', tone: 'protein', quickAdd: '全蛋' },
+      { name: '全蛋', tone: 'protein', quickAdd: '全蛋' },
+      { name: '鸡蛋(不吃蛋黄)', tone: 'protein', quickAdd: '鸡蛋(不吃蛋黄)' },
       { name: '混合坚果', tone: 'fat', quickAdd: '混合坚果' }
     ],
     note: '加餐是补空缺，不是额外乱吃，优先安排在训练前后或两餐之间。'
@@ -333,9 +334,17 @@ Page({
     const baseProt = this.roundMacro((item.baseProt || item.prot || 0) / (item.baseProt ? 1 : safeScale))
     const baseFat = this.roundMacro((item.baseFat || item.fat || 0) / (item.baseFat ? 1 : safeScale))
     const primaryMacros = this.getPrimaryMacros(item)
+    const servingLabel = item.servingLabel || this.getServingLabel(item.unit, item.name)
     return {
       ...item,
       baseWeight,
+      servingLabel,
+      displayServing: this.getDisplayPortion({
+        servingLabel,
+        amount,
+        baseWeight,
+        customWeight,
+      }),
       primaryMacros,
       isPrimaryCarb: primaryMacros.includes('carb'),
       isPrimaryProt: primaryMacros.includes('prot'),
@@ -376,6 +385,44 @@ Page({
       : food.amount === 1 ? food.unit : `${food.unit} x ${food.amount}`
   },
 
+  getServingLabel(unit = '', name = '') {
+    let label = String(unit).split('(')[0].trim()
+    if (name && label.startsWith(name)) {
+      label = label.slice(name.length).trim()
+    }
+    if (!label && name) {
+      const baseFood = this.getFoodByName(name)
+      if (baseFood) return this.getServingLabel(baseFood.unit)
+    }
+    return label || '份'
+  },
+
+  getDisplayServing(servingLabel = '份', amount = 1) {
+    const count = amount > 0 ? amount : 1
+    if (Math.abs(count - 1) < 0.01) return `1${servingLabel}`
+    const value = Number.isInteger(count) ? count : this.roundMacro(count)
+    return `${value}${servingLabel}`
+  },
+
+  getDisplayPortion({ servingLabel = '份', amount = 1, baseWeight = null, customWeight = null } = {}) {
+    if (baseWeight && baseWeight.value) {
+      const weight = customWeight || baseWeight.value
+      const amountByWeight = this.roundMacro(weight / baseWeight.value)
+      return `${this.roundMacro(weight)}${baseWeight.unit} · ${this.getDisplayServing(servingLabel, amountByWeight)}`
+    }
+    return this.getDisplayServing(servingLabel, amount)
+  },
+
+  formatTargetPortion(foodName, targetWeight) {
+    const food = this.getFoodByName(foodName)
+    if (!food) return `${Math.round(targetWeight)}g`
+    const baseWeight = this.parseBaseWeight(food.unit)
+    const servingLabel = this.getServingLabel(food.unit, food.name)
+    if (!baseWeight || !baseWeight.value) return `${Math.round(targetWeight)}g`
+    const amount = this.roundMacro(targetWeight / baseWeight.value)
+    return `${Math.round(targetWeight)}${baseWeight.unit} · ${this.getDisplayServing(servingLabel, amount)}`
+  },
+
   applyLoggedPreview(item, overrides = {}) {
     const amount = this.normalizeAmount(overrides.amount !== undefined ? overrides.amount : item.amount)
     const customWeight = this.normalizeWeight(
@@ -385,6 +432,12 @@ Page({
     const scale = item.baseWeight && customWeight ? customWeight / item.baseWeight.value : amount
     return {
       amount,
+      displayServing: this.getDisplayPortion({
+        servingLabel: item.servingLabel || this.getServingLabel(item.unit, item.name),
+        amount,
+        baseWeight: item.baseWeight,
+        customWeight,
+      }),
       amountInput: overrides.amount !== undefined ? String(overrides.amount) : String(amount),
       customWeight,
       weightInput: overrides.customWeight !== undefined
@@ -518,11 +571,11 @@ Page({
     const breakfastOatsProt = (oatsFood?.prot || 0) * oatsScale
     const breakfastOatsFat = (oatsFood?.fat || 0) * oatsScale
     const breakfastEggs = this.clampValue(
-      this.getScaledFoodCount('鸡蛋', mealTargets.breakfast.prot * 0.78, breakfastOatsProt),
+      this.getScaledFoodCount('全蛋', mealTargets.breakfast.prot * 0.78, breakfastOatsProt),
       1,
       4
     )
-    const eggFood = this.getFoodByName('鸡蛋')
+    const eggFood = this.getFoodByName('全蛋')
     const breakfastEggFat = (eggFood?.fat || 0) * breakfastEggs
     const breakfastSeeds = this.clampValue(
       this.getScaledFoodWeight(
@@ -594,7 +647,7 @@ Page({
         fat: mealTargets.breakfast.fat,
         kcal: mealTargets.breakfast.kcal,
         macroLine: `碳水 ${mealTargets.breakfast.carb}g · 蛋白 ${mealTargets.breakfast.prot}g · 脂肪 ${mealTargets.breakfast.fat}g · 约 ${mealTargets.breakfast.kcal}千卡`,
-        target: `燕麦约 ${breakfastOats}g，鸡蛋约 ${breakfastEggs}个，南瓜子约 ${breakfastSeeds}g，水果少量`,
+        target: `燕麦约 ${this.formatTargetPortion('燕麦', breakfastOats)}，全蛋约 ${breakfastEggs}个，南瓜子约 ${Math.round(breakfastSeeds)}g，水果少量`,
       },
       {
         ...TAN_MEAL_TEMPLATES.lunch,
@@ -603,7 +656,7 @@ Page({
         fat: mealTargets.lunch.fat,
         kcal: mealTargets.lunch.kcal,
         macroLine: `碳水 ${mealTargets.lunch.carb}g · 蛋白 ${mealTargets.lunch.prot}g · 脂肪 ${mealTargets.lunch.fat}g · 约 ${mealTargets.lunch.kcal}千卡`,
-        target: `生米约 ${lunchRice}g，肉类约 ${lunchProteinWeight}g，蔬菜约 ${lunchVegWeight}g`,
+        target: `生米约 ${this.formatTargetPortion('生米', lunchRice)}，肉类约 ${Math.round(lunchProteinWeight)}g，蔬菜约 ${Math.round(lunchVegWeight)}g`,
       },
       {
         ...TAN_MEAL_TEMPLATES.dinner,
@@ -612,7 +665,7 @@ Page({
         fat: mealTargets.dinner.fat,
         kcal: mealTargets.dinner.kcal,
         macroLine: `碳水 ${mealTargets.dinner.carb}g · 蛋白 ${mealTargets.dinner.prot}g · 脂肪 ${mealTargets.dinner.fat}g · 约 ${mealTargets.dinner.kcal}千卡`,
-        target: `薯类约 ${dinnerTubers}g，牛肉约 ${dinnerProteinWeight}g，坚果约 ${dinnerNuts}g，蔬菜约 ${dinnerVegWeight}g`,
+        target: `薯类约 ${Math.round(dinnerTubers)}g，牛肉约 ${Math.round(dinnerProteinWeight)}g，坚果约 ${Math.round(dinnerNuts)}g，蔬菜约 ${Math.round(dinnerVegWeight)}g`,
       },
       {
         ...TAN_MEAL_TEMPLATES.snack,
@@ -621,7 +674,7 @@ Page({
         fat: mealTargets.snack.fat,
         kcal: mealTargets.snack.kcal,
         macroLine: `碳水 ${mealTargets.snack.carb}g · 蛋白 ${mealTargets.snack.prot}g · 脂肪 ${mealTargets.snack.fat}g · 约 ${mealTargets.snack.kcal}千卡`,
-        target: `希腊酸奶约 ${snackYogurtWeight}g，或低脂牛奶约 ${snackMilkWeight}ml${snackNeedsEgg ? `，再补 ${snackEggCount}个鸡蛋` : ''}，水果约 ${snackFruitWeight}g`,
+        target: `希腊酸奶约 ${this.formatTargetPortion('希腊酸奶', snackYogurtWeight)}，或低脂牛奶约 ${this.formatTargetPortion('低脂牛奶', snackMilkWeight)}${snackNeedsEgg ? `，再补 ${snackEggCount}个全蛋` : ''}，水果约 ${Math.round(snackFruitWeight)}g`,
       }
     ]
   },
@@ -688,6 +741,13 @@ Page({
     return {
       ...food,
       baseWeight,
+      servingLabel: this.getServingLabel(food.unit),
+      displayServing: this.getDisplayPortion({
+        servingLabel: this.getServingLabel(food.unit),
+        amount,
+        baseWeight,
+        customWeight,
+      }),
       amount,
       amountInput: rawAmount === undefined ? String(amount) : String(rawAmount),
       customWeight,
@@ -710,6 +770,12 @@ Page({
     const scale = customWeight && baseWeight ? customWeight / baseWeight.value : amount
     return {
       amount,
+      displayServing: this.getDisplayPortion({
+        servingLabel: food.servingLabel || this.getServingLabel(food.unit),
+        amount,
+        baseWeight,
+        customWeight,
+      }),
       amountInput: rawAmount === undefined ? String(amount) : String(rawAmount),
       customWeight,
       weightInput: rawWeight === undefined
@@ -852,6 +918,7 @@ Page({
     const item = {
       ...food,
       unit: finalUnit,
+      servingLabel: food.servingLabel || this.getServingLabel(food.unit),
       kcal: food.displayKcal,
       carb: food.displayCarb,
       prot: food.displayProt,
