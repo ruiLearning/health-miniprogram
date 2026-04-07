@@ -1,5 +1,5 @@
 <!-- pages/diet/diet.wxml -->
-<view class="page-wrap {{showModal ? 'modal-open' : ''}}">
+<view class="page-wrap">
 
   <!-- ── Header ── -->
   <view class="diet-header">
@@ -38,6 +38,42 @@
 
   <!-- ── Summary Ring Card ── -->
   <view class="card summary-card">
+    <view class="plan-banner" wx:if="{{macroPlan}}">
+      <view class="plan-banner-left">
+        <view class="plan-banner-title">谭成义减脂方案</view>
+        <view class="plan-banner-sub">{{profile.gender === 'female' ? '女性' : '男性'}} · {{macroPlan.level}}运动 · {{macroPlan.weeklyHours}}</view>
+        <view class="plan-method">
+          <view class="plan-method-title">按体重与运动量计算</view>
+          <view class="plan-method-desc">以当前体重 {{profile.weight}}kg 为基准，结合每周运动时长估算每日三大营养目标。</view>
+          <view class="plan-method-grid">
+            <view class="plan-method-pill amber-soft">碳水 {{macroPlan.carbTarget}}g</view>
+            <view class="plan-method-pill blue-soft">蛋白 {{macroPlan.protTarget}}g</view>
+            <view class="plan-method-pill coral-soft">脂肪 {{macroPlan.fatTarget}}g</view>
+          </view>
+          <view wx:if="{{tanAdjustTips.length}}" class="plan-adjust-toggle" bindtap="togglePlanAdjust">
+            <view class="plan-adjust-toggle-label">动态调整</view>
+            <view class="plan-adjust-toggle-meta">{{planAdjustExpanded ? '收起' : '展开'}}</view>
+          </view>
+          <view wx:if="{{planAdjustExpanded && tanAdjustTips.length}}" class="plan-adjust">
+            <view class="plan-adjust-head">
+              <view class="plan-adjust-title">动态调整</view>
+              <view class="plan-adjust-chip">10天复盘</view>
+            </view>
+            <view class="plan-adjust-list">
+              <view class="plan-adjust-item" wx:for="{{tanAdjustTips}}" wx:key="*this">
+                <view class="plan-adjust-dot"></view>
+                <view class="plan-adjust-text">{{item}}</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="plan-banner-right">
+        <view class="plan-banner-kcal">{{macroPlan.kcalTarget}}</view>
+        <view class="plan-banner-unit">日目标千卡</view>
+      </view>
+    </view>
+
     <view class="summary-inner">
 
       <!-- Ring -->
@@ -56,31 +92,34 @@
           <view class="macro-head">
             <view class="macro-dot" style="background:#F08C00"></view>
             <text class="macro-label">碳水</text>
-            <text class="macro-val amber">{{nutrition.carb}}g</text>
+            <text class="macro-val amber">{{nutrition.carb}} / {{macroPlan.carbTarget}}g</text>
           </view>
           <view class="bar-track">
             <view class="bar-fill amber-fill" style="width:{{carbPct}}%"></view>
           </view>
+          <view class="macro-target">系数 {{macroPlan.carbFactor}} g/kg</view>
         </view>
         <view class="macro-item">
           <view class="macro-head">
             <view class="macro-dot" style="background:#3B82F6"></view>
             <text class="macro-label">蛋白质</text>
-            <text class="macro-val blue">{{nutrition.prot}}g</text>
+            <text class="macro-val blue">{{nutrition.prot}} / {{macroPlan.protTarget}}g</text>
           </view>
           <view class="bar-track">
             <view class="bar-fill blue-fill" style="width:{{protPct}}%"></view>
           </view>
+          <view class="macro-target">系数 {{macroPlan.protFactor}} g/kg</view>
         </view>
         <view class="macro-item">
           <view class="macro-head">
             <view class="macro-dot" style="background:#EF4444"></view>
             <text class="macro-label">脂肪</text>
-            <text class="macro-val coral">{{nutrition.fat}}g</text>
+            <text class="macro-val coral">{{nutrition.fat}} / {{macroPlan.fatTarget}}g</text>
           </view>
           <view class="bar-track">
             <view class="bar-fill coral-fill" style="width:{{fatPct}}%"></view>
           </view>
+          <view class="macro-target">系数 {{macroPlan.fatFactor}} g/kg</view>
         </view>
       </view>
 
@@ -93,7 +132,7 @@
         <view class="sf-lbl">剩余千卡</view>
       </view>
       <view class="sf-item blue-bg">
-        <view class="sf-num blue">{{profile.kcalGoal}}</view>
+        <view class="sf-num blue">{{macroPlan.kcalTarget}}</view>
         <view class="sf-lbl">目标千卡</view>
       </view>
       <view class="sf-item amber-bg">
@@ -112,123 +151,207 @@
 
   <!-- ── Meals ── -->
   <block wx:for="{{meals}}" wx:key="id">
-    <view class="meal-card card">
-      <!-- Meal header -->
-      <view class="meal-head">
-        <view class="meal-head-left">
-          <view class="meal-icon-wrap" style="background:{{item.iconBg}}">
-            <text class="meal-icon">{{item.icon}}</text>
+    <view class="meal-group meal-group-{{item.id}}">
+      <view class="meal-card meal-card-{{item.id}} card">
+        <!-- Meal header -->
+        <view class="meal-head">
+          <view class="meal-head-left">
+            <view class="meal-icon-wrap" style="background:{{item.iconBg}}">
+              <text class="meal-icon">{{item.icon}}</text>
+            </view>
+            <view>
+              <view class="meal-name">{{item.name}}</view>
+              <view class="meal-sub">{{item.itemCount}}种食物</view>
+            </view>
           </view>
-          <view>
-            <view class="meal-name">{{item.name}}</view>
-            <view class="meal-sub">{{item.itemCount}}种食物</view>
+          <view class="meal-head-right">
+            <view class="meal-kcal-badge" style="background:{{item.badgeBg}};color:{{item.badgeColor}}">
+              {{item.totalKcal}} 千卡
+            </view>
+            <view class="meal-add-btn" bindtap="openFoodModal" data-meal="{{item.id}}">
+              <text class="add-icon">+</text>
+            </view>
           </view>
         </view>
-        <view class="meal-head-right">
-          <view class="meal-kcal-badge" style="background:{{item.badgeBg}};color:{{item.badgeColor}}">
-            {{item.totalKcal}} 千卡
-          </view>
-          <view class="meal-add-btn" bindtap="openFoodModal" data-meal="{{item.id}}">
-            <text class="add-icon">+</text>
-          </view>
-        </view>
-      </view>
 
-      <!-- Food items -->
-      <view wx:if="{{item.items.length > 0}}">
-        <view class="divider"></view>
-        <view class="food-list">
+        <view wx:if="{{item.plan}}" class="meal-quick-add">
+          <view class="meal-quick-add-head">
+            <view class="meal-quick-add-title">快捷添加</view>
+            <view class="meal-quick-add-tip">点一下直接加到{{item.name}}</view>
+          </view>
+          <view class="meal-quick-add-foods">
+            <view
+              class="meal-plan-chip meal-plan-chip-{{foodTip.tone}}"
+              wx:for="{{item.plan.foods}}"
+              wx:for-item="foodTip"
+              wx:key="name"
+              data-meal="{{item.id}}"
+              data-name="{{foodTip.quickAdd}}"
+              bindtap="addSuggestedFood"
+            >{{foodTip.name}}</view>
+          </view>
+        </view>
+
+        <!-- Food items -->
+        <view wx:if="{{item.items.length > 0}}">
+          <view class="divider"></view>
+          <view class="food-list">
           <view class="food-item" wx:for="{{item.items}}" wx:for-item="food" wx:key="uid">
             <view class="food-left">
-              <view class="food-name">{{food.name}}</view>
+              <view class="food-top-row">
+                <view class="food-name">{{food.name}}</view>
+                <view class="food-kcal">{{food.kcal}} 千卡</view>
+              </view>
               <view class="food-sub">{{food.unit}}</view>
+              <view class="food-main-row" catchtap="noop">
+                <view class="food-macro-pills">
+                  <view wx:if="{{food.isPrimaryCarb}}" class="food-macro-pill amber-soft food-macro-pill-primary">碳水 {{food.carb}}g</view>
+                  <view wx:if="{{!food.isPrimaryCarb}}" class="food-macro-pill food-macro-pill-muted">碳水 {{food.carb}}g</view>
+                  <view wx:if="{{food.isPrimaryProt}}" class="food-macro-pill blue-soft food-macro-pill-primary">蛋白 {{food.prot}}g</view>
+                  <view wx:if="{{!food.isPrimaryProt}}" class="food-macro-pill food-macro-pill-muted">蛋白 {{food.prot}}g</view>
+                  <view wx:if="{{food.isPrimaryFat}}" class="food-macro-pill coral-soft food-macro-pill-primary">脂肪 {{food.fat}}g</view>
+                  <view wx:if="{{!food.isPrimaryFat}}" class="food-macro-pill food-macro-pill-muted">脂肪 {{food.fat}}g</view>
+                </view>
+                <view class="food-edit-row">
+                  <block wx:if="{{food.baseWeight}}">
+                    <text class="food-edit-label">重量</text>
+                    <input
+                      class="food-edit-input"
+                      type="digit"
+                      value="{{food.weightInput}}"
+                      data-meal="{{item.id}}"
+                      data-uid="{{food.uid}}"
+                      bindinput="onLoggedWeightInput"
+                    />
+                    <text class="food-edit-unit">{{food.baseWeight.unit}}</text>
+                  </block>
+                  <block wx:else>
+                    <text class="food-edit-label">份数</text>
+                    <input
+                      class="food-edit-input"
+                      type="digit"
+                      value="{{food.amountInput}}"
+                      data-meal="{{item.id}}"
+                      data-uid="{{food.uid}}"
+                      bindinput="onLoggedAmountInput"
+                    />
+                  </block>
+                </view>
+              </view>
             </view>
             <view class="food-right">
-              <view class="food-kcal">{{food.kcal}} 千卡</view>
               <view class="food-del-btn" bindtap="deleteFood" data-meal="{{item.id}}" data-uid="{{food.uid}}">
                 <text class="del-icon">×</text>
+              </view>
               </view>
             </view>
           </view>
         </view>
-      </view>
 
-      <!-- Empty -->
-      <view wx:else class="meal-empty">
-        <text>点击 + 添加{{item.name}}食物</text>
-      </view>
+        <!-- Empty -->
+        <view wx:else class="meal-empty">
+          <text>点击 + 添加{{item.name}}食物</text>
+        </view>
 
+      </view>
+      <view wx:if="{{item.plan}}" class="meal-plan-card meal-plan meal-plan-{{item.plan.theme}}">
+        <view class="meal-plan-head">
+          <view class="meal-plan-section-title">本餐建议</view>
+          <view class="meal-plan-badge">{{item.plan.badge}}方案</view>
+        </view>
+        <view class="meal-plan-remain {{item.isOver ? 'is-over' : ''}}">
+          <view class="meal-plan-remain-head">
+            <view class="meal-plan-remain-chip">{{item.isOver ? '已超出' : '还剩'}}</view>
+            <view class="meal-plan-remain-title">{{item.isOver ? '这餐已经超出目标' : '优先补这餐缺口'}}</view>
+          </view>
+          <view class="meal-plan-status-pills">
+            <view class="meal-plan-status-pill {{remainItem.tone === 'over' ? 'over-soft' : remainItem.tone + '-soft'}}" wx:for="{{item.remainItems}}" wx:for-item="remainItem" wx:key="key">{{remainItem.label}} {{remainItem.value}}</view>
+          </view>
+          <view wx:if="{{item.isOver}}" class="meal-plan-over-tip">这餐已经超出建议值，下一餐尽量回到目标区间。</view>
+        </view>
+        <view class="meal-plan-suggest">
+          <view class="meal-plan-suggest-head">
+            <view class="meal-plan-suggest-chip">建议</view>
+            <view class="meal-plan-suggest-title">这餐建议这样吃</view>
+          </view>
+          <view class="meal-plan-target-pills">
+            <view class="meal-plan-target-pill amber-soft">碳水 {{item.plan.carb}}g</view>
+            <view class="meal-plan-target-pill blue-soft">蛋白 {{item.plan.prot}}g</view>
+            <view class="meal-plan-target-pill coral-soft">脂肪 {{item.plan.fat}}g</view>
+            <view class="meal-plan-target-pill kcal-soft">约 {{item.plan.kcal}}千卡</view>
+          </view>
+          <view class="meal-plan-suggest-text">{{item.plan.target}}</view>
+        </view>
+        <view class="meal-plan-note">{{item.plan.note}}</view>
+      </view>
     </view>
   </block>
 
-</view>
+  <view wx:if="{{showModal}}" class="modal-mask" catchtouchmove="noop" bindtap="closeModal">
+    <view class="modal-sheet" catchtap="noop" catchtouchmove="noop">
+      <view class="modal-handle"></view>
+      <view class="modal-head">
+        <view class="modal-title">选择{{currentMealName}}食物</view>
+        <view class="modal-close" bindtap="closeModal">关闭</view>
+      </view>
 
-<!-- ── Add Food Modal ── -->
-<view class="modal-mask {{showModal ? 'show' : ''}}" bindtap="closeModal" catchtouchmove="noop"></view>
-<view class="modal-sheet {{showModal ? 'show' : ''}}" catchtouchmove="noop">
-  <view class="modal-handle"></view>
-  <view class="modal-head">
-    <view class="modal-title">添加{{currentMealName}}食物</view>
-    <view class="modal-close" bindtap="closeModal">✕</view>
-  </view>
+      <view class="search-wrap modal-search">
+        <view class="search-icon">🔍</view>
+        <input class="search-input" placeholder="搜索食物名称…" value="{{searchKey}}"
+          bindinput="onSearch" confirm-type="search" placeholder-style="color:#CCC"/>
+      </view>
 
-  <!-- Search -->
-  <view class="search-wrap">
-    <view class="search-icon">🔍</view>
-    <input class="search-input" placeholder="搜索食物名称…" value="{{searchKey}}"
-      bindinput="onSearch" confirm-type="search" placeholder-style="color:#CCC"/>
-  </view>
+      <scroll-view class="cat-tabs modal-cat-tabs" scroll-x enable-flex show-scrollbar="{{false}}">
+        <view class="cat-tab {{activeCat === item ? 'active' : ''}}"
+          wx:for="{{foodCats}}" wx:key="*this" data-cat="{{item}}"
+          bindtap="setCat">{{item}}</view>
+      </scroll-view>
 
-  <!-- Category tabs -->
-  <scroll-view class="cat-tabs" scroll-x enable-flex show-scrollbar="{{false}}">
-    <view class="cat-tab {{activeCat === item ? 'active' : ''}}"
-      wx:for="{{foodCats}}" wx:key="*this" data-cat="{{item}}"
-      bindtap="setCat">{{item}}</view>
-  </scroll-view>
-
-  <!-- Food list -->
-  <scroll-view class="modal-food-list" scroll-y enable-flex show-scrollbar="{{false}}">
-    <view class="modal-food-item" wx:for="{{filteredFoods}}" wx:key="id" bindtap="addFood" data-id="{{item.id}}">
-      <view class="mfi-left">
-        <view class="mfi-cat-dot" style="background:{{item.catColor}}"></view>
-        <view>
-          <view class="mfi-name">{{item.name}}</view>
-          <view class="mfi-sub">
-            {{item.unit}} · 碳水{{item.displayCarb}}g · 蛋白{{item.displayProt}}g · 脂肪{{item.displayFat}}g
-            <text wx:if="{{item.source === '谭成义'}}" class="mfi-source" style="color:{{item.sourceColor}}"> · 谭成义推荐</text>
+      <scroll-view class="modal-food-list" scroll-y show-scrollbar="{{false}}" enable-flex>
+        <view class="modal-food-item" wx:for="{{filteredFoods}}" wx:key="id" bindtap="addFood" data-id="{{item.id}}">
+          <view class="mfi-left">
+            <view class="mfi-cat-dot" style="background:{{item.catColor}}"></view>
+            <view>
+              <view class="mfi-name">{{item.name}}</view>
+              <view class="mfi-sub">
+                {{item.unit}} · 碳水{{item.displayCarb}}g · 蛋白{{item.displayProt}}g · 脂肪{{item.displayFat}}g
+                <text wx:if="{{item.source === '谭成义'}}" class="mfi-source" style="color:{{item.sourceColor}}"> · 谭成义推荐</text>
+              </view>
+              <view class="mfi-custom-row" catchtap="noop">
+                <block wx:if="{{item.baseWeight}}">
+                  <text class="mfi-custom-label">重量</text>
+                  <input
+                    class="mfi-custom-input"
+                    type="digit"
+                    value="{{item.weightInput}}"
+                    data-id="{{item.id}}"
+                    bindinput="onWeightInput"
+                  />
+                  <text class="mfi-custom-unit">{{item.baseWeight.unit}}</text>
+                </block>
+                <block wx:else>
+                  <text class="mfi-custom-label">自定义份数</text>
+                  <input
+                    class="mfi-custom-input"
+                    type="digit"
+                    value="{{item.amountInput}}"
+                    data-id="{{item.id}}"
+                    bindinput="onAmountInput"
+                  />
+                </block>
+              </view>
+            </view>
           </view>
-          <view class="mfi-custom-row" catchtap="noop">
-            <block wx:if="{{item.baseWeight}}">
-              <text class="mfi-custom-label">重量</text>
-              <input
-                class="mfi-custom-input"
-                type="digit"
-                value="{{item.weightInput}}"
-                data-id="{{item.id}}"
-                bindinput="onWeightInput"
-              />
-              <text class="mfi-custom-unit">{{item.baseWeight.unit}}</text>
-            </block>
-            <block wx:else>
-              <text class="mfi-custom-label">自定义份数</text>
-              <input
-                class="mfi-custom-input"
-                type="digit"
-                value="{{item.amountInput}}"
-                data-id="{{item.id}}"
-                bindinput="onAmountInput"
-              />
-            </block>
+          <view class="mfi-right">
+            <view class="mfi-kcal">{{item.displayKcal}}</view>
+            <view class="mfi-kcal-lbl">千卡</view>
           </view>
         </view>
-      </view>
-      <view class="mfi-right">
-        <view class="mfi-kcal">{{item.displayKcal}}</view>
-        <view class="mfi-kcal-lbl">千卡</view>
-      </view>
+        <view wx:if="{{filteredFoods.length === 0}}" class="no-result">
+          <text>未找到相关食物</text>
+        </view>
+      </scroll-view>
     </view>
-    <view wx:if="{{filteredFoods.length === 0}}" class="no-result">
-      <text>未找到相关食物</text>
-    </view>
-  </scroll-view>
+  </view>
+
 </view>

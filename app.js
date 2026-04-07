@@ -63,6 +63,7 @@ App({
       // 蛋白质
       { id: 'p01', name: '鸡胸肉', unit: '份 (100g)', kcal: 133, carb: 0, prot: 25, fat: 3.1, cat: '蛋白质' },
       { id: 'p02', name: '水煮蛋', unit: '个 (60g)', kcal: 78, carb: 0.6, prot: 6.5, fat: 5.1, cat: '蛋白质' },
+      { id: 'p17', name: '鸡蛋', unit: '个 (60g)', kcal: 78, carb: 0.6, prot: 6.5, fat: 5.1, cat: '蛋白质', source: '谭成义' },
       { id: 'p11', name: '全蛋', unit: '个 (60g)', kcal: 78, carb: 0.6, prot: 6.5, fat: 5.1, cat: '蛋白质', source: '谭成义' },
       { id: 'p03', name: '三文鱼', unit: '份 (100g)', kcal: 142, carb: 0, prot: 20, fat: 6.3, cat: '蛋白质' },
       { id: 'p12', name: '龙利鱼', unit: '份 (100g)', kcal: 83, carb: 0, prot: 17.6, fat: 1.2, cat: '蛋白质', source: '谭成义' },
@@ -70,7 +71,7 @@ App({
       { id: 'p14', name: '鸡腿肉', unit: '份 (100g)', kcal: 167, carb: 0, prot: 19, fat: 10, cat: '蛋白质', source: '谭成义' },
       { id: 'p15', name: '去皮鸡腿肉', unit: '份 (100g)', kcal: 133, carb: 0, prot: 20.8, fat: 5.6, cat: '蛋白质', source: '谭成义' },
       { id: 'p04', name: '北豆腐', unit: '块 (100g)', kcal: 76, carb: 1.9, prot: 8, fat: 4.2, cat: '蛋白质' },
-      { id: 'p05', name: '低脂牛奶', unit: '杯 (250ml)', kcal: 130, carb: 12, prot: 8.5, fat: 2.5, cat: '蛋白质' },
+      { id: 'p05', name: '低脂牛奶', unit: '杯 (250ml)', kcal: 105, carb: 12, prot: 8.5, fat: 2.5, cat: '蛋白质' },
       { id: 'p06', name: '希腊酸奶', unit: '杯 (150g)', kcal: 90, carb: 5, prot: 15, fat: 0.7, cat: '蛋白质' },
       { id: 'p07', name: '牛腱子', unit: '份 (100g)', kcal: 143, carb: 0, prot: 22, fat: 6, cat: '蛋白质' },
       { id: 'p16', name: '牛肉', unit: '份 (100g)', kcal: 155, carb: 0, prot: 24, fat: 5.5, cat: '蛋白质', source: '谭成义' },
@@ -131,6 +132,82 @@ App({
   saveDayData(dateStr, data) {
     const key = `hc_day_${dateStr}`
     wx.setStorageSync(key, data)
+  },
+
+  getTanMacroPlan(profile = {}) {
+    const weight = Number(profile.weight) || 0
+    const gender = profile.gender === 'female' ? 'female' : 'male'
+    const activity = Number(profile.activity) || 1.55
+
+    let level = '中频'
+    let weeklyHours = '4-5小时'
+    let carbFactor = 2.5
+    let protFactor = 1.6
+    let fatFactor = gender === 'female' ? 1.1 : 0.9
+
+    if (activity <= 1.35) {
+      level = '低频'
+      weeklyHours = '2-3小时'
+      carbFactor = 2.2
+      protFactor = 1.4
+      fatFactor = gender === 'female' ? 1.0 : 0.8
+    } else if (activity <= 1.6) {
+      level = '中频'
+      weeklyHours = '4-5小时'
+      carbFactor = 2.5
+      protFactor = 1.6
+      fatFactor = gender === 'female' ? 1.1 : 0.9
+    } else if (activity <= 1.85) {
+      level = '高频'
+      weeklyHours = '6-7小时'
+      carbFactor = 3.0
+      protFactor = 1.7
+      fatFactor = gender === 'female' ? 1.1 : 1.0
+    } else {
+      level = '极高频'
+      weeklyHours = '8-9小时'
+      carbFactor = gender === 'female' ? 3.0 : 3.5
+      protFactor = 1.8
+      fatFactor = gender === 'female' ? 1.2 : 1.0
+    }
+
+    const carbTarget = Math.round(weight * carbFactor)
+    const protTarget = Math.round(weight * protFactor)
+    const fatTarget = Math.round(weight * fatFactor)
+    const kcalTarget = carbTarget * 4 + protTarget * 4 + fatTarget * 9
+
+    return {
+      level,
+      weeklyHours,
+      carbFactor,
+      protFactor,
+      fatFactor,
+      carbTarget,
+      protTarget,
+      fatTarget,
+      kcalTarget
+    }
+  },
+
+  calcBMR(profile = {}) {
+    const height = Number(profile.height) || 0
+    const weight = Number(profile.weight) || 0
+    const age = Number(profile.age) || 0
+    if (!height || !weight || !age) return 0
+    return profile.gender === 'female'
+      ? 10 * weight + 6.25 * height - 5 * age - 161
+      : 10 * weight + 6.25 * height - 5 * age + 5
+  },
+
+  getCalorieGuide(tdee, bmiValue) {
+    const bmi = parseFloat(bmiValue) || 0
+    const maintain = Math.round(tdee || 0)
+    let deficit = 300
+    if (bmi >= 28) deficit = 500
+    else if (bmi >= 24) deficit = 400
+    const cut = maintain ? Math.max(1200, maintain - deficit) : 0
+    const gain = maintain ? maintain + 250 : 0
+    return { cut, maintain, gain }
   },
 
   computeNutrition(dayData) {

@@ -95,10 +95,7 @@
     <view class="form-divider"></view>
 
     <view class="form-row">
-      <view class="form-label">
-        每日热量目标
-        <text class="auto-calc" bindtap="autoCalcKcal">⚡ 自动计算</text>
-      </view>
+      <view class="form-label">每日热量目标</view>
       <view class="input-with-unit">
         <input class="form-input-sm wide" type="number" placeholder="2000"
           value="{{form.kcalGoal}}" bindinput="onInput" data-key="kcalGoal"/>
@@ -123,8 +120,9 @@
     <view class="tip-title">🧮 热量计算结果</view>
     <view class="tip-row"><text class="tip-label">基础代谢 (BMR)</text><text class="tip-val green">{{bmr}} 千卡</text></view>
     <view class="tip-row"><text class="tip-label">日常消耗 (TDEE)</text><text class="tip-val green">{{tdee}} 千卡</text></view>
-    <view class="tip-row"><text class="tip-label">减脂建议</text><text class="tip-val amber">{{tdee - 300}} 千卡</text></view>
-    <view class="tip-row"><text class="tip-label">增肌建议</text><text class="tip-val blue">{{tdee + 300}} 千卡</text></view>
+    <view class="tip-row"><text class="tip-label">减脂建议</text><text class="tip-val amber">{{calorieGuide.cut}} 千卡</text></view>
+    <view class="tip-row"><text class="tip-label">维持建议</text><text class="tip-val green">{{calorieGuide.maintain}} 千卡</text></view>
+    <view class="tip-row"><text class="tip-label">增肌建议</text><text class="tip-val blue">{{calorieGuide.gain}} 千卡</text></view>
   </view>
 
   <!-- ── App Info ── -->

@@ -42,6 +42,11 @@ Page({
     bmrHintClass: 'blue-tag',
     healthyWeightHint: '',
     healthyWeightHintClass: 'green-tag',
+    calorieGuide: {
+      cut: 0,
+      maintain: 0,
+      gain: 0,
+    },
     isDirty: false,
     savedProfile: null,
   },
@@ -59,6 +64,7 @@ Page({
     const bmiStatus = this.getBMIStatus(bmi)
     const bmr = this.calcBMR(p)
     const tdee = bmr ? Math.round(bmr * (p.activity || 1.55)) : 0
+    const calorieGuide = this.getCalorieGuide(tdee, bmi)
     const displayName = p.name || '健康达人'
     const headerHints = this.getHeaderHints({ ...p, bmi, tdee })
 
@@ -89,6 +95,7 @@ Page({
       bmrHintClass: headerHints.bmrHintClass,
       healthyWeightHint: headerHints.healthyWeightHint,
       healthyWeightHintClass: headerHints.healthyWeightHintClass,
+      calorieGuide,
       bmr: Math.round(bmr),
       tdee,
       avatarLoadFailed: false,
@@ -212,10 +219,11 @@ Page({
   },
 
   calcBMR(p) {
-    if (!p.height || !p.weight || !p.age) return 0
-    return p.gender === 'female'
-      ? 655 + 9.6 * p.weight + 1.8 * p.height - 4.7 * p.age
-      : 66  + 13.7 * p.weight + 5  * p.height - 6.8 * p.age
+    return app.calcBMR(p)
+  },
+
+  getCalorieGuide(tdee, bmiValue) {
+    return app.getCalorieGuide(tdee, bmiValue)
   },
 
   persistProfileDraft(extra = {}) {
@@ -248,6 +256,54 @@ Page({
     this.setData({ isDirty })
   },
 
+  applyBodyMetrics(nextForm, options = {}) {
+    const { syncKcalGoal = false } = options
+    const preview = {
+      ...nextForm,
+      height: parseFloat(nextForm.height),
+      weight: parseFloat(nextForm.weight),
+      age: parseFloat(nextForm.age),
+      activity: parseFloat(nextForm.activity) || 1.55,
+    }
+    const bmi = this.calcBMI(preview)
+    const bmiStatus = this.getBMIStatus(bmi)
+    const bmr = this.calcBMR(preview)
+    const tdee = bmr ? Math.round(bmr * preview.activity) : 0
+    const calorieGuide = this.getCalorieGuide(tdee, bmi)
+    const finalForm = {
+      ...nextForm,
+      ...(syncKcalGoal && calorieGuide.cut ? { kcalGoal: String(calorieGuide.cut) } : {}),
+    }
+    const headerHints = this.getHeaderHints({
+      ...preview,
+      bmi,
+      kcalGoal: finalForm.kcalGoal,
+      waterGoal: finalForm.waterGoal,
+      tdee,
+    })
+    this.setData({
+      ...(syncKcalGoal && calorieGuide.cut ? { 'form.kcalGoal': String(calorieGuide.cut) } : {}),
+      bmi,
+      bmiLabel: bmiStatus.label,
+      bmiTagClass: bmiStatus.className,
+      kcalHint: headerHints.kcalHint,
+      kcalHintClass: headerHints.kcalHintClass,
+      waterHint: headerHints.waterHint,
+      waterHintClass: headerHints.waterHintClass,
+      weightHint: headerHints.weightHint,
+      weightHintClass: headerHints.weightHintClass,
+      bmrHint: headerHints.bmrHint,
+      bmrHintClass: headerHints.bmrHintClass,
+      healthyWeightHint: headerHints.healthyWeightHint,
+      healthyWeightHintClass: headerHints.healthyWeightHintClass,
+      calorieGuide,
+      bmr: Math.round(bmr),
+      tdee,
+    })
+    this.updateDirtyState(finalForm)
+    return finalForm
+  },
+
   onInput(e) {
     const key = e.currentTarget.dataset.key
     const val = e.detail.value
@@ -256,47 +312,15 @@ Page({
       [key]: val,
     }
     this.setData({ [`form.${key}`]: val })
-    this.updateDirtyState(nextForm)
-
-    // live-update BMI / BMR preview
-    if (['height', 'weight', 'age', 'gender', 'kcalGoal', 'waterGoal'].includes(key)) {
-      const f = this.data.form
-      const preview = {
-        ...f,
-        [key]: val,
-        height: parseFloat(key === 'height' ? val : f.height),
-        weight: parseFloat(key === 'weight' ? val : f.weight),
-        age:    parseFloat(key === 'age'    ? val : f.age),
-      }
-      const bmi = this.calcBMI(preview)
-      const bmiStatus = this.getBMIStatus(bmi)
-      const bmr = this.calcBMR(preview)
-      const tdee = bmr ? Math.round(bmr * (parseFloat(f.activity) || 1.55)) : 0
-      const headerHints = this.getHeaderHints({
-        ...preview,
-        bmi,
-        kcalGoal: f.kcalGoal,
-        waterGoal: f.waterGoal,
-        tdee,
-      })
-      this.setData({
-        bmi,
-        bmiLabel: bmiStatus.label,
-        bmiTagClass: bmiStatus.className,
-        kcalHint: headerHints.kcalHint,
-        kcalHintClass: headerHints.kcalHintClass,
-        waterHint: headerHints.waterHint,
-        waterHintClass: headerHints.waterHintClass,
-        weightHint: headerHints.weightHint,
-        weightHintClass: headerHints.weightHintClass,
-        bmrHint: headerHints.bmrHint,
-        bmrHintClass: headerHints.bmrHintClass,
-        healthyWeightHint: headerHints.healthyWeightHint,
-        healthyWeightHintClass: headerHints.healthyWeightHintClass,
-        bmr: Math.round(bmr),
-        tdee
-      })
+    if (['height', 'weight', 'age'].includes(key)) {
+      this.applyBodyMetrics(nextForm, { syncKcalGoal: true })
+      return
     }
+    if (['kcalGoal', 'waterGoal'].includes(key)) {
+      this.applyBodyMetrics(nextForm)
+      return
+    }
+    this.updateDirtyState(nextForm)
   },
 
   onNicknameInput(e) {
@@ -337,11 +361,16 @@ Page({
   },
 
   onAvatarError() {
+    const nextForm = {
+      ...this.data.form,
+      avatarUrl: '',
+    }
     this.setData({
       avatarLoadFailed: true,
       'form.avatarUrl': '',
       'profile.avatarUrl': '',
     })
+    this.updateDirtyState(nextForm)
   },
 
   syncWechatProfile() {
@@ -387,22 +416,23 @@ Page({
 
   setGender(e) {
     const val = e.currentTarget.dataset.val
+    const nextForm = {
+      ...this.data.form,
+      gender: val,
+    }
     this.setData({ 'form.gender': val })
-    const f = this.data.form
-    const preview = { ...f, gender: val, height: parseFloat(f.height), weight: parseFloat(f.weight), age: parseFloat(f.age) }
-    const bmr = this.calcBMR(preview)
-    const tdee = bmr ? Math.round(bmr * (parseFloat(f.activity) || 1.55)) : 0
-    this.setData({ bmr: Math.round(bmr), tdee })
+    this.applyBodyMetrics(nextForm, { syncKcalGoal: true })
   },
 
   onActivityChange(e) {
     const idx = parseInt(e.detail.value)
     const actVal = ACTIVITY_OPTIONS[idx].val
+    const nextForm = {
+      ...this.data.form,
+      activity: actVal,
+    }
     this.setData({ activityIndex: idx, 'form.activity': actVal })
-    const f = this.data.form
-    const bmr = this.calcBMR({ ...f, height: parseFloat(f.height), weight: parseFloat(f.weight), age: parseFloat(f.age) })
-    const tdee = bmr ? Math.round(bmr * actVal) : 0
-    this.setData({ tdee })
+    this.applyBodyMetrics(nextForm, { syncKcalGoal: true })
   },
 
   autoCalcKcal() {
@@ -420,12 +450,19 @@ Page({
     }
     const bmr  = this.calcBMR(p)
     const tdee = Math.round(bmr * (p.activity || 1.55))
-    const kcalGoal = tdee - 200  // light deficit as default
+    const calorieGuide = this.getCalorieGuide(tdee, this.calcBMI(p))
+    const kcalGoal = calorieGuide.cut
+    const nextForm = {
+      ...this.data.form,
+      kcalGoal: String(kcalGoal),
+    }
     this.setData({
       'form.kcalGoal': String(kcalGoal),
       bmr: Math.round(bmr),
       tdee,
+      calorieGuide,
     })
+    this.updateDirtyState(nextForm)
     wx.showToast({ title: `推荐热量 ${kcalGoal} 千卡`, icon: 'none', duration: 2000 })
   },
 
@@ -455,6 +492,7 @@ Page({
     const bmiStatus = this.getBMIStatus(bmi)
     const bmr = this.calcBMR(profile)
     const tdee = bmr ? Math.round(bmr * profile.activity) : 0
+    const calorieGuide = this.getCalorieGuide(tdee, bmi)
     const headerHints = this.getHeaderHints({ ...profile, bmi, tdee })
     this.setData({
       profile,
@@ -471,6 +509,7 @@ Page({
       bmrHintClass: headerHints.bmrHintClass,
       healthyWeightHint: headerHints.healthyWeightHint,
       healthyWeightHintClass: headerHints.healthyWeightHintClass,
+      calorieGuide,
       bmr: Math.round(bmr),
       tdee,
       isDirty: false,
