@@ -32,8 +32,7 @@ const TAN_MEAL_TEMPLATES = {
     badge: '午餐',
     theme: 'green',
     foods: [
-      { name: '熟米饭', tone: 'grain', quickAdd: '熟米饭' },
-      { name: '生米', tone: 'grain', quickAdd: '生米' },
+      { name: '土豆', tone: 'grain', quickAdd: '土豆' },
       { name: '龙利鱼', tone: 'protein', quickAdd: '龙利鱼' },
       { name: '巴沙鱼', tone: 'protein', quickAdd: '巴沙鱼' },
       { name: '鸡胸肉', tone: 'protein', quickAdd: '鸡胸肉' },
@@ -404,6 +403,13 @@ Page({
     return `${value}${servingLabel}`
   },
 
+  getSuggestionServing(servingLabel = '份', amount = 1) {
+    const count = Math.max(0.5, Math.round((amount || 1) * 2) / 2)
+    if (Math.abs(count - 0.5) < 0.01) return `半${servingLabel}`
+    if (Math.abs(count - 1) < 0.01) return `1${servingLabel}`
+    return `${count}${servingLabel}`
+  },
+
   getDisplayPortion({ servingLabel = '份', amount = 1, baseWeight = null, customWeight = null } = {}) {
     if (baseWeight && baseWeight.value) {
       const weight = customWeight || baseWeight.value
@@ -420,7 +426,109 @@ Page({
     const servingLabel = this.getServingLabel(food.unit, food.name)
     if (!baseWeight || !baseWeight.value) return `${Math.round(targetWeight)}g`
     const amount = this.roundMacro(targetWeight / baseWeight.value)
-    return `${Math.round(targetWeight)}${baseWeight.unit} · ${this.getDisplayServing(servingLabel, amount)}`
+    return `${Math.round(targetWeight)}${baseWeight.unit} · ${this.getSuggestionServing(servingLabel, amount)}`
+  },
+
+  getSeedNumber(key = '') {
+    const date = String(this.data.selectedDate || app.globalData.today || '').replace(/\D/g, '')
+    const base = Number(date) || 0
+    const textScore = String(key).split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+    return base + textScore
+  },
+
+  pickPlanOptions(options = [], key = '', count = 3) {
+    if (options.length <= count) return options
+    const start = this.getSeedNumber(key) % options.length
+    const picked = []
+    for (let i = 0; i < count; i += 1) {
+      picked.push(options[(start + i) % options.length])
+    }
+    return picked
+  },
+
+  buildPlanOption(label, parts = [], targets = null) {
+    let items = parts
+      .filter(Boolean)
+      .map(part => typeof part === 'string'
+        ? { text: part, name: '', weight: 0 }
+        : {
+            name: part.name,
+            weight: Math.round(part.weight || 0),
+          })
+    if (targets) {
+      items = this.normalizePlanItems(items, targets)
+    }
+    items = items.map(item => ({
+      ...item,
+      text: item.name ? `${item.name}约 ${this.formatTargetPortion(item.name, item.weight)}` : item.text,
+    }))
+    return {
+      label,
+      items,
+      text: items.map(item => item.text).join('，'),
+    }
+  },
+
+  buildPlanFood(name, weight, text = '') {
+    return {
+      name,
+      weight: Math.round(weight || 0),
+      text,
+    }
+  },
+
+  getPlanItemMacros(item = {}) {
+    const food = this.getFoodByName(item.name)
+    const baseWeight = food ? this.parseBaseWeight(food.unit) : null
+    if (!food || !baseWeight || !baseWeight.value || !item.weight) {
+      return { carb: 0, prot: 0, fat: 0 }
+    }
+    const scale = item.weight / baseWeight.value
+    return {
+      carb: (food.carb || 0) * scale,
+      prot: (food.prot || 0) * scale,
+      fat: (food.fat || 0) * scale,
+    }
+  },
+
+  normalizePlanItems(items = [], targets = {}) {
+    const namedItems = items.filter(item => item.name && item.weight > 0)
+    if (!namedItems.length) return items
+    const total = namedItems.reduce((acc, item) => {
+      const macros = this.getPlanItemMacros(item)
+      acc.carb += macros.carb
+      acc.prot += macros.prot
+      acc.fat += macros.fat
+      return acc
+    }, { carb: 0, prot: 0, fat: 0 })
+    const factors = []
+    if (targets.carb && total.carb > 0) factors.push(targets.carb / total.carb)
+    if (targets.prot && total.prot > 0) factors.push(targets.prot / total.prot)
+    if (targets.fat && total.fat > 0) factors.push(targets.fat / total.fat)
+    const scale = Math.min(...factors.filter(Boolean), 1.35) * 0.995
+    if (scale > 0.99 && scale < 1.01) return items
+    return items.map(item => {
+      if (!item.name || !item.weight) return item
+      return {
+        ...item,
+        weight: Math.max(1, Math.round(item.weight * scale)),
+      }
+    })
+  },
+
+  buildPlanFoodPreview(name, targetWeight) {
+    const baseFood = this.getFoodByName(name)
+    if (!baseFood) return null
+    const food = this.applyCustomAmount({
+      ...baseFood,
+      catColor: CAT_COLORS[baseFood.cat] || '#999',
+      sourceColor: CAT_COLORS[baseFood.source] || '#999'
+    })
+    if (!food.baseWeight || !targetWeight) return food
+    return {
+      ...food,
+      ...this.buildPreview(food, { customWeight: String(this.roundMacro(targetWeight)) })
+    }
   },
 
   applyLoggedPreview(item, overrides = {}) {
@@ -537,6 +645,28 @@ Page({
     return Math.min(max, Math.max(min, Math.round(value || 0)))
   },
 
+  buildMealTargets(macroPlan, splits) {
+    const keys = Object.keys(splits)
+    const result = {}
+    const distribute = (total, field) => {
+      let used = 0
+      keys.forEach((key, index) => {
+        const ratio = splits[key][field]
+        const value = index === keys.length - 1 ? total - used : Math.round(total * ratio)
+        if (!result[key]) result[key] = {}
+        result[key][field] = value
+        used += value
+      })
+    }
+    distribute(macroPlan.carbTarget, 'carb')
+    distribute(macroPlan.protTarget, 'prot')
+    distribute(macroPlan.fatTarget, 'fat')
+    keys.forEach(key => {
+      result[key].kcal = result[key].carb * 4 + result[key].prot * 4 + result[key].fat * 9
+    })
+    return result
+  },
+
   buildTanMealCards(profile, macroPlan) {
     const weight = Number(profile.weight) || 0
     const splits = {
@@ -546,19 +676,7 @@ Page({
       snack: { carb: 0.1, prot: 0.15, fat: 0.15 }
     }
 
-    const mealTargets = Object.keys(splits).reduce((acc, key) => {
-      const split = splits[key]
-      const carb = Math.round(macroPlan.carbTarget * split.carb)
-      const prot = Math.round(macroPlan.protTarget * split.prot)
-      const fat = Math.round(macroPlan.fatTarget * split.fat)
-      acc[key] = {
-        carb,
-        prot,
-        fat,
-        kcal: carb * 4 + prot * 4 + fat * 9
-      }
-      return acc
-    }, {})
+    const mealTargets = this.buildMealTargets(macroPlan, splits)
 
     const breakfastOats = this.clampValue(
       this.getScaledFoodWeight('燕麦', 'carb', mealTargets.breakfast.carb * 0.72, 60),
@@ -587,21 +705,80 @@ Page({
       5,
       25
     )
-
-    const lunchRice = this.clampValue(
-      this.getScaledFoodWeight('生米', 'carb', mealTargets.lunch.carb, 80),
-      55,
-      140
+    const breakfastBlueberryWeight = this.clampValue(
+      this.getScaledFoodWeight('蓝莓', 'carb', Math.max(6, mealTargets.breakfast.carb * 0.2), 80),
+      60,
+      180
+    )
+    const breakfastEggWhiteCount = this.clampValue(
+      this.getScaledFoodCount('鸡蛋(不吃蛋黄)', Math.max(6, mealTargets.breakfast.prot * 0.5), breakfastOatsProt),
+      1,
+      4
+    )
+    const breakfastYogurtWeight = this.clampValue(
+      this.getScaledFoodWeight('希腊酸奶', 'prot', Math.max(8, mealTargets.breakfast.prot * 0.7), 150),
+      120,
+      260
+    )
+    const breakfastMilkWeight = this.clampValue(
+      this.getScaledFoodWeight('低脂牛奶', 'prot', Math.max(6, mealTargets.breakfast.prot * 0.45), 250),
+      180,
+      320
+    )
+    const lunchPotatoWeight = this.clampValue(
+      this.getScaledFoodWeight('土豆', 'carb', mealTargets.lunch.carb, 220),
+      120,
+      420
     )
     const lunchProteinWeight = this.clampValue(
       this.getScaledFoodWeight('鸡胸肉', 'prot', mealTargets.lunch.prot, 150),
       100,
       260
     )
+    const lunchFishWeight = this.clampValue(
+      this.getScaledFoodWeight('龙利鱼', 'prot', mealTargets.lunch.prot, 180),
+      120,
+      260
+    )
+    const lunchBasaWeight = this.clampValue(
+      this.getScaledFoodWeight('巴沙鱼', 'prot', mealTargets.lunch.prot, 180),
+      120,
+      260
+    )
+    const lunchShrimpWeight = this.clampValue(
+      this.getScaledFoodWeight('虾仁', 'prot', mealTargets.lunch.prot, 180),
+      120,
+      260
+    )
+    const lunchThighWeight = this.clampValue(
+      this.getScaledFoodWeight('去皮鸡腿肉', 'prot', mealTargets.lunch.prot, 180),
+      120,
+      280
+    )
     const lunchVegWeight = this.clampValue(weight * 3 + mealTargets.lunch.carb, 180, 360)
+    const lunchOilWeight = this.clampValue(
+      this.getScaledFoodWeight('橄榄油', 'fat', Math.max(4, mealTargets.lunch.fat * 0.45), 8),
+      5,
+      12
+    )
 
     const dinnerTubers = this.clampValue(
       this.getScaledFoodWeight('红薯', 'carb', mealTargets.dinner.carb, 250),
+      150,
+      420
+    )
+    const dinnerPurpleWeight = this.clampValue(
+      this.getScaledFoodWeight('紫薯', 'carb', mealTargets.dinner.carb, 250),
+      150,
+      420
+    )
+    const dinnerPotatoWeight = this.clampValue(
+      this.getScaledFoodWeight('土豆', 'carb', mealTargets.dinner.carb, 220),
+      150,
+      420
+    )
+    const dinnerPumpkinWeight = this.clampValue(
+      this.getScaledFoodWeight('贝贝南瓜', 'carb', mealTargets.dinner.carb, 220),
       150,
       420
     )
@@ -609,6 +786,16 @@ Page({
       this.getScaledFoodWeight('牛肉', 'prot', mealTargets.dinner.prot, 150),
       100,
       260
+    )
+    const dinnerFishWeight = this.clampValue(
+      this.getScaledFoodWeight('龙利鱼', 'prot', mealTargets.dinner.prot, 180),
+      120,
+      260
+    )
+    const dinnerThighWeight = this.clampValue(
+      this.getScaledFoodWeight('去皮鸡腿肉', 'prot', mealTargets.dinner.prot, 180),
+      120,
+      280
     )
     const beefFood = this.getFoodByName('牛肉')
     const beefServingWeight = this.getServingWeight(beefFood) || 100
@@ -618,6 +805,11 @@ Page({
       this.getScaledFoodWeight('混合坚果', 'fat', Math.max(4, mealTargets.dinner.fat - dinnerBeefFat), 15),
       8,
       30
+    )
+    const dinnerOilWeight = this.clampValue(
+      this.getScaledFoodWeight('橄榄油', 'fat', Math.max(4, mealTargets.dinner.fat * 0.45), 8),
+      5,
+      12
     )
     const dinnerVegWeight = this.clampValue(weight * 3 + mealTargets.dinner.carb * 0.6, 180, 360)
 
@@ -636,8 +828,132 @@ Page({
       60,
       180
     )
+    const snackBananaWeight = this.clampValue(
+      this.getScaledFoodWeight('香蕉', 'carb', Math.max(10, mealTargets.snack.carb * 0.9), 120),
+      80,
+      180
+    )
+    const snackNutsWeight = this.clampValue(
+      this.getScaledFoodWeight('混合坚果', 'fat', Math.max(3, mealTargets.snack.fat * 0.75), 12),
+      6,
+      20
+    )
+    const snackEggWhiteCount = this.clampValue(
+      this.getScaledFoodCount('鸡蛋(不吃蛋黄)', Math.max(4, mealTargets.snack.prot * 0.35), 0),
+      1,
+      3
+    )
     const snackNeedsEgg = mealTargets.snack.prot > 18
     const snackEggCount = snackNeedsEgg ? 1 : 0
+
+    const breakfastOptions = this.pickPlanOptions([
+      this.buildPlanOption('组合A', [
+        this.buildPlanFood('燕麦', breakfastOats),
+        this.buildPlanFood('全蛋', breakfastEggs * 60, `全蛋约 ${breakfastEggs}个`),
+        this.buildPlanFood('南瓜子', breakfastSeeds),
+        this.buildPlanFood('蓝莓', breakfastBlueberryWeight),
+      ], mealTargets.breakfast),
+      this.buildPlanOption('组合B', [
+        this.buildPlanFood('燕麦', Math.round(breakfastOats * 0.8)),
+        this.buildPlanFood('希腊酸奶', breakfastYogurtWeight),
+        this.buildPlanFood('鸡蛋(不吃蛋黄)', breakfastEggWhiteCount * 33, `鸡蛋(不吃蛋黄)约 ${breakfastEggWhiteCount}个`),
+        this.buildPlanFood('蓝莓', breakfastBlueberryWeight),
+      ], mealTargets.breakfast),
+      this.buildPlanOption('组合C', [
+        this.buildPlanFood('燕麦', Math.round(breakfastOats * 0.9)),
+        this.buildPlanFood('全蛋', Math.max(1, breakfastEggs - 1) * 60, `全蛋约 ${Math.max(1, breakfastEggs - 1)}个`),
+        this.buildPlanFood('低脂牛奶', breakfastMilkWeight),
+        this.buildPlanFood('香蕉', Math.max(80, breakfastBlueberryWeight)),
+      ], mealTargets.breakfast),
+      this.buildPlanOption('组合D', [
+        this.buildPlanFood('燕麦', Math.round(breakfastOats * 0.7)),
+        this.buildPlanFood('全蛋', Math.max(1, breakfastEggs - 1) * 60, `全蛋约 ${Math.max(1, breakfastEggs - 1)}个`),
+        this.buildPlanFood('鸡蛋(不吃蛋黄)', Math.max(1, breakfastEggWhiteCount) * 33, `鸡蛋(不吃蛋黄)约 ${Math.max(1, breakfastEggWhiteCount)}个`),
+        this.buildPlanFood('南瓜子', Math.max(6, breakfastSeeds * 0.8)),
+      ], mealTargets.breakfast),
+    ], 'breakfast')
+
+    const lunchOptions = this.pickPlanOptions([
+      this.buildPlanOption('组合A', [
+        this.buildPlanFood('土豆', lunchPotatoWeight),
+        this.buildPlanFood('鸡胸肉', lunchProteinWeight),
+        this.buildPlanFood('西兰花', lunchVegWeight),
+      ], mealTargets.lunch),
+      this.buildPlanOption('组合B', [
+        this.buildPlanFood('土豆', Math.round(lunchPotatoWeight * 0.95)),
+        this.buildPlanFood('龙利鱼', lunchFishWeight),
+        this.buildPlanFood('羽衣甘蓝', lunchVegWeight),
+        this.buildPlanFood('橄榄油', lunchOilWeight),
+      ], mealTargets.lunch),
+      this.buildPlanOption('组合C', [
+        this.buildPlanFood('土豆', Math.round(lunchPotatoWeight * 0.9)),
+        this.buildPlanFood('去皮鸡腿肉', lunchThighWeight),
+        this.buildPlanFood('菇类', lunchVegWeight),
+      ], mealTargets.lunch),
+      this.buildPlanOption('组合D', [
+        this.buildPlanFood('土豆', Math.round(lunchPotatoWeight * 0.85)),
+        this.buildPlanFood('虾仁', lunchShrimpWeight),
+        this.buildPlanFood('菠菜', lunchVegWeight),
+      ], mealTargets.lunch),
+      this.buildPlanOption('组合E', [
+        this.buildPlanFood('土豆', Math.round(lunchPotatoWeight * 0.8)),
+        this.buildPlanFood('巴沙鱼', lunchBasaWeight),
+        this.buildPlanFood('西兰花', lunchVegWeight),
+        this.buildPlanFood('橄榄油', lunchOilWeight),
+      ], mealTargets.lunch),
+    ], 'lunch')
+
+    const dinnerOptions = this.pickPlanOptions([
+      this.buildPlanOption('组合A', [
+        this.buildPlanFood('红薯', dinnerTubers),
+        this.buildPlanFood('牛肉', dinnerProteinWeight),
+        this.buildPlanFood('混合坚果', dinnerNuts),
+        this.buildPlanFood('西兰花', dinnerVegWeight),
+      ], mealTargets.dinner),
+      this.buildPlanOption('组合B', [
+        this.buildPlanFood('紫薯', dinnerPurpleWeight),
+        this.buildPlanFood('牛肉', dinnerProteinWeight),
+        this.buildPlanFood('菠菜', dinnerVegWeight),
+        this.buildPlanFood('橄榄油', dinnerOilWeight),
+      ], mealTargets.dinner),
+      this.buildPlanOption('组合C', [
+        this.buildPlanFood('土豆', dinnerPotatoWeight),
+        this.buildPlanFood('龙利鱼', dinnerFishWeight),
+        this.buildPlanFood('混合坚果', dinnerNuts),
+        this.buildPlanFood('羽衣甘蓝', dinnerVegWeight),
+      ], mealTargets.dinner),
+      this.buildPlanOption('组合D', [
+        this.buildPlanFood('贝贝南瓜', dinnerPumpkinWeight),
+        this.buildPlanFood('去皮鸡腿肉', dinnerThighWeight),
+        this.buildPlanFood('菇类', dinnerVegWeight),
+        this.buildPlanFood('橄榄油', dinnerOilWeight),
+      ], mealTargets.dinner),
+    ], 'dinner')
+
+    const snackOptions = this.pickPlanOptions([
+      this.buildPlanOption('组合A', [
+        this.buildPlanFood('希腊酸奶', snackYogurtWeight),
+        this.buildPlanFood('蓝莓', snackFruitWeight),
+        this.buildPlanFood('混合坚果', snackNutsWeight),
+      ], mealTargets.snack),
+      this.buildPlanOption('组合B', [
+        this.buildPlanFood('低脂牛奶', snackMilkWeight),
+        this.buildPlanFood('香蕉', snackBananaWeight),
+        snackNeedsEgg
+          ? this.buildPlanFood('全蛋', snackEggCount * 60, `全蛋约 ${snackEggCount}个`)
+          : this.buildPlanFood('鸡蛋(不吃蛋黄)', snackEggWhiteCount * 33, `鸡蛋(不吃蛋黄)约 ${snackEggWhiteCount}个`),
+      ], mealTargets.snack),
+      this.buildPlanOption('组合C', [
+        this.buildPlanFood('希腊酸奶', Math.round(snackYogurtWeight * 0.8)),
+        this.buildPlanFood('鸡蛋(不吃蛋黄)', snackEggWhiteCount * 33, `鸡蛋(不吃蛋黄)约 ${snackEggWhiteCount}个`),
+        this.buildPlanFood('蓝莓', snackFruitWeight),
+      ], mealTargets.snack),
+      this.buildPlanOption('组合D', [
+        this.buildPlanFood('低脂牛奶', Math.round(snackMilkWeight * 0.9)),
+        this.buildPlanFood('全蛋', Math.max(1, snackEggCount) * 60, `全蛋约 ${Math.max(1, snackEggCount)}个`),
+        this.buildPlanFood('香蕉', snackBananaWeight),
+      ], mealTargets.snack),
+    ], 'snack')
 
     return [
       {
@@ -647,7 +963,8 @@ Page({
         fat: mealTargets.breakfast.fat,
         kcal: mealTargets.breakfast.kcal,
         macroLine: `碳水 ${mealTargets.breakfast.carb}g · 蛋白 ${mealTargets.breakfast.prot}g · 脂肪 ${mealTargets.breakfast.fat}g · 约 ${mealTargets.breakfast.kcal}千卡`,
-        target: `燕麦约 ${this.formatTargetPortion('燕麦', breakfastOats)}，全蛋约 ${breakfastEggs}个，南瓜子约 ${Math.round(breakfastSeeds)}g，水果少量`,
+        target: breakfastOptions[0].text,
+        options: breakfastOptions,
       },
       {
         ...TAN_MEAL_TEMPLATES.lunch,
@@ -656,7 +973,8 @@ Page({
         fat: mealTargets.lunch.fat,
         kcal: mealTargets.lunch.kcal,
         macroLine: `碳水 ${mealTargets.lunch.carb}g · 蛋白 ${mealTargets.lunch.prot}g · 脂肪 ${mealTargets.lunch.fat}g · 约 ${mealTargets.lunch.kcal}千卡`,
-        target: `生米约 ${this.formatTargetPortion('生米', lunchRice)}，肉类约 ${Math.round(lunchProteinWeight)}g，蔬菜约 ${Math.round(lunchVegWeight)}g`,
+        target: lunchOptions[0].text,
+        options: lunchOptions,
       },
       {
         ...TAN_MEAL_TEMPLATES.dinner,
@@ -665,7 +983,8 @@ Page({
         fat: mealTargets.dinner.fat,
         kcal: mealTargets.dinner.kcal,
         macroLine: `碳水 ${mealTargets.dinner.carb}g · 蛋白 ${mealTargets.dinner.prot}g · 脂肪 ${mealTargets.dinner.fat}g · 约 ${mealTargets.dinner.kcal}千卡`,
-        target: `薯类约 ${Math.round(dinnerTubers)}g，牛肉约 ${Math.round(dinnerProteinWeight)}g，坚果约 ${Math.round(dinnerNuts)}g，蔬菜约 ${Math.round(dinnerVegWeight)}g`,
+        target: dinnerOptions[0].text,
+        options: dinnerOptions,
       },
       {
         ...TAN_MEAL_TEMPLATES.snack,
@@ -674,7 +993,8 @@ Page({
         fat: mealTargets.snack.fat,
         kcal: mealTargets.snack.kcal,
         macroLine: `碳水 ${mealTargets.snack.carb}g · 蛋白 ${mealTargets.snack.prot}g · 脂肪 ${mealTargets.snack.fat}g · 约 ${mealTargets.snack.kcal}千卡`,
-        target: `希腊酸奶约 ${this.formatTargetPortion('希腊酸奶', snackYogurtWeight)}，或低脂牛奶约 ${this.formatTargetPortion('低脂牛奶', snackMilkWeight)}${snackNeedsEgg ? `，再补 ${snackEggCount}个全蛋` : ''}，水果约 ${Math.round(snackFruitWeight)}g`,
+        target: snackOptions[0].text,
+        options: snackOptions,
       }
     ]
   },
@@ -906,6 +1226,52 @@ Page({
     this.loadPage(currentDate)
   },
 
+  addPlanFoodByWeight(name, meal, targetWeight, currentDate) {
+    const baseFood = this.getFoodByName(name)
+    if (!baseFood) return false
+    const food = this.buildPlanFoodPreview(name, targetWeight) || this.applyCustomAmount({
+      ...baseFood,
+      catColor: CAT_COLORS[baseFood.cat] || '#999',
+      sourceColor: CAT_COLORS[baseFood.source] || '#999'
+    })
+    return this.appendFoodToMeal(food, meal, currentDate)
+  },
+
+  addPlanFood(e) {
+    const { meal, name, weight } = e.currentTarget.dataset
+    const currentDate = this.data.selectedDate || app.globalData.today
+    if (this.isFutureDate(currentDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    if (!this.addPlanFoodByWeight(name, meal, Number(weight) || 0, currentDate)) return
+    wx.showToast({ title: `已添加 ${name}`, icon: 'success', duration: 1200 })
+    this.loadPage(currentDate)
+  },
+
+  addPlanCombo(e) {
+    const { meal, index } = e.currentTarget.dataset
+    const currentDate = this.data.selectedDate || app.globalData.today
+    if (this.isFutureDate(currentDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const mealData = (this.data.meals || []).find(item => item.id === meal)
+    const option = mealData && mealData.plan && mealData.plan.options
+      ? mealData.plan.options[index]
+      : null
+    if (!option || !option.items || !option.items.length) return
+    let addedCount = 0
+    option.items.forEach(planItem => {
+      if (!planItem.name) return
+      if (this.addPlanFoodByWeight(planItem.name, meal, Number(planItem.weight) || 0, currentDate)) {
+        addedCount += 1
+      }
+    })
+    if (!addedCount) return
+    this.loadPage(currentDate)
+  },
+
   appendFoodToMeal(food, meal, currentDate) {
     if (this.isFutureDate(currentDate)) {
       wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
@@ -1006,6 +1372,29 @@ Page({
         if (!res.confirm) return
         const dayData = app.getDayData(currentDate)
         dayData.meals[meal] = dayData.meals[meal].filter(i => i.uid !== uid)
+        app.saveDayData(currentDate, dayData)
+        this.loadPage(currentDate)
+      }
+    })
+  },
+
+  clearMeal(e) {
+    const { meal } = e.currentTarget.dataset
+    const currentDate = this.data.selectedDate || app.globalData.today
+    if (this.isFutureDate(currentDate)) {
+      wx.showToast({ title: '今天之后的日期不可修改', icon: 'none' })
+      return
+    }
+    const mealInfo = (this.data.meals || []).find(item => item.id === meal)
+    if (!mealInfo || !mealInfo.itemCount) return
+    wx.showModal({
+      title: `清空${mealInfo.name}`,
+      content: `确认清空${mealInfo.name}的全部 ${mealInfo.itemCount} 条记录吗？`,
+      confirmColor: '#EF4444',
+      success: (res) => {
+        if (!res.confirm) return
+        const dayData = app.getDayData(currentDate)
+        dayData.meals[meal] = []
         app.saveDayData(currentDate, dayData)
         this.loadPage(currentDate)
       }
