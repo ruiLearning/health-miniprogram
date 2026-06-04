@@ -1,0 +1,162 @@
+<view class="page-wrap">
+  <view class="hero-card">
+    <view class="hero-kicker">WEIGHT LOSS</view>
+    <view class="hero-title">减肥中心</view>
+    <view class="hero-subtitle">{{profileName}}，原来 5 个 tab 的内容都收进这里了。</view>
+
+    <view class="hero-metrics">
+      <view class="hero-metric">
+        <view class="hero-metric-value">{{weight}}</view>
+        <view class="hero-metric-label">当前体重 kg</view>
+      </view>
+      <view class="hero-metric">
+        <view class="hero-metric-value">{{bmi}}</view>
+        <view class="hero-metric-label">BMI</view>
+      </view>
+      <view class="hero-metric">
+        <view class="hero-metric-value">{{kcalTarget}}</view>
+        <view class="hero-metric-label">日目标千卡</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="summary-grid">
+    <view class="summary-card green">
+      <view class="summary-label">今日热量</view>
+      <view class="summary-value">{{todayKcal}}</view>
+      <view class="summary-sub">目标 {{kcalTarget}} 千卡</view>
+    </view>
+    <view class="summary-card blue">
+      <view class="summary-label">今日饮水</view>
+      <view class="summary-value">{{todayWater}}</view>
+      <view class="summary-sub">目标 {{waterGoal}} 杯</view>
+    </view>
+    <view class="summary-card amber">
+      <view class="summary-label">今日体重</view>
+      <view class="summary-value">{{todayWeight}}</view>
+      <view class="summary-sub">kg</view>
+    </view>
+    <view class="summary-card coral">
+      <view class="summary-label">今日任务</view>
+      <view class="summary-value">{{taskDone}}/{{taskTotal}}</view>
+      <view class="summary-sub">已完成</view>
+    </view>
+  </view>
+
+  <view class="section-head">
+    <view class="section-title">减肥功能模块</view>
+    <view class="section-desc">上边点 tab 切换，下边看对应模块内容。</view>
+  </view>
+
+  <scroll-view class="top-tab-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="top-tab-row">
+      <view
+        wx:for="{{topTabs}}"
+        wx:key="key"
+        class="top-tab {{activeTab === index ? 'top-tab-active' : ''}}"
+        data-index="{{index}}"
+        bindtap="switchTab"
+        hover-class="top-tab-hover"
+        hover-stay-time="80"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <swiper class="module-swiper" current="{{activeTab}}" bindchange="onSwiperChange">
+    <swiper-item wx:for="{{modulePanels}}" wx:key="title" wx:for-item="panel">
+      <scroll-view class="module-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <view
+          class="module-panel module-{{panel.accent}}"
+          data-url="{{panel.url}}"
+          bindtap="openEntry"
+          hover-class="module-panel-hover"
+          hover-stay-time="100"
+        >
+          <view class="module-head">
+            <view>
+              <view class="entry-badge">{{panel.badge}}</view>
+              <view class="entry-title">{{panel.title}}</view>
+              <view class="entry-desc">{{panel.desc}}</view>
+            </view>
+          </view>
+
+          <view class="module-stats">
+            <view class="module-stat" wx:for="{{panel.stats}}" wx:key="label" wx:for-item="stat">
+              <view class="module-stat-label">{{stat.label}}</view>
+              <view class="module-stat-value">{{stat.value}}<text class="module-stat-unit">{{stat.unit}}</text></view>
+            </view>
+          </view>
+
+        <view wx:if="{{panel.macroBars}}" class="inline-section">
+          <view class="inline-title">今日营养概览</view>
+          <view class="macro-chart-wrap">
+            <canvas canvas-id="macroPie" class="macro-pie-canvas" style="width:180px;height:180px" width="180" height="180"></canvas>
+          </view>
+          <view class="macro-preview" wx:for="{{panel.macroBars}}" wx:key="label" wx:for-item="macro">
+            <view class="macro-preview-head">
+              <view class="macro-preview-label-wrap">
+                  <view class="macro-preview-icon" style="background:{{macro.color}}22;color:{{macro.color}}">{{macro.icon}}</view>
+                  <view class="macro-preview-label">{{macro.label}}</view>
+                </view>
+                <view class="macro-preview-num">{{macro.current}} / {{macro.target}}g</view>
+              </view>
+              <view class="macro-preview-track">
+                <view class="macro-preview-fill" style="width:{{macro.pct}}%;background:{{macro.color}}"></view>
+              </view>
+            </view>
+          </view>
+
+          <view wx:if="{{panel.waterCups}}" class="inline-section">
+            <view class="inline-title">今日饮水与任务</view>
+            <view class="water-preview">
+              <view class="water-cup {{cup.filled ? 'water-cup-filled' : ''}}" wx:for="{{panel.waterCups}}" wx:key="index" wx:for-item="cup">●</view>
+            </view>
+            <view class="task-chip-row">
+              <view class="task-chip {{task.done ? 'task-chip-done' : ''}}" wx:for="{{panel.taskChips}}" wx:key="id" wx:for-item="task">
+                {{task.icon}} {{task.name}}
+              </view>
+            </view>
+          </view>
+
+          <view wx:if="{{panel.weekKcal}}" class="inline-section">
+            <view class="inline-title">近 7 天趋势</view>
+            <view class="trend-bars">
+              <view class="trend-item" wx:for="{{panel.weekKcal}}" wx:key="label" wx:for-item="trend">
+                <view class="trend-bar-wrap">
+                  <view class="trend-bar" style="height:{{trend.height}}rpx"></view>
+                </view>
+                <view class="trend-label">{{trend.label}}</view>
+              </view>
+            </view>
+            <view class="rate-pill-row">
+              <view class="rate-pill" wx:for="{{panel.weekTaskRates}}" wx:key="label" wx:for-item="rate">{{rate.label}} {{rate.value}}</view>
+            </view>
+          </view>
+
+          <view wx:if="{{panel.previews}}" class="inline-section">
+            <view class="inline-title">精选内容</view>
+            <view class="article-preview" wx:for="{{panel.previews}}" wx:key="*this" wx:for-item="preview">
+              <view class="article-dot"></view>
+              <view class="article-text">{{preview}}</view>
+            </view>
+          </view>
+
+          <view wx:if="{{panel.settings}}" class="inline-section">
+            <view class="inline-title">当前设置摘要</view>
+            <view class="settings-grid">
+              <view class="setting-item" wx:for="{{panel.settings}}" wx:key="label" wx:for-item="setting">
+                <view class="setting-label">{{setting.label}}</view>
+                <view class="setting-value">{{setting.value}}</view>
+              </view>
+            </view>
+          </view>
+
+          <view class="module-action" hover-class="module-action-hover" hover-stay-time="80">
+            <view class="module-action-text">{{panel.cta}}</view>
+            <view class="entry-arrow">›</view>
+          </view>
+        </view>
+      </scroll-view>
+    </swiper-item>
+  </swiper>
+</view>

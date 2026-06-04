@@ -1,5 +1,8 @@
 {
   "pages": [
+    "pages/slim/slim",
+    "pages/exercise/exercise",
+    "pages/mine/mine",
     "pages/diet/diet",
     "pages/checkin/checkin",
     "pages/stats/stats",
@@ -14,6 +17,11 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F4F6FA"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在运动地图中显示你的当前位置"
+    }
+  },
   "tabBar": {
     "color": "#AAAAAA",
     "selectedColor": "#1AAD74",
@@ -22,31 +30,19 @@
     "custom": false,
     "list": [
       {
-        "pagePath": "pages/diet/diet",
-        "text": "饮食",
+        "pagePath": "pages/slim/slim",
+        "text": "减肥",
         "iconPath": "images/tab-diet.png",
         "selectedIconPath": "images/tab-diet-active.png"
       },
       {
-        "pagePath": "pages/masters/masters",
-        "text": "大神",
-        "iconPath": "images/tab-masters.png",
-        "selectedIconPath": "images/tab-masters-active.png"
-      },
-      {
-        "pagePath": "pages/checkin/checkin",
-        "text": "打卡",
-        "iconPath": "images/tab-checkin.png",
-        "selectedIconPath": "images/tab-checkin-active.png"
-      },
-      {
-        "pagePath": "pages/stats/stats",
-        "text": "统计",
+        "pagePath": "pages/exercise/exercise",
+        "text": "运动",
         "iconPath": "images/tab-stats.png",
         "selectedIconPath": "images/tab-stats-active.png"
       },
       {
-        "pagePath": "pages/profile/profile",
+        "pagePath": "pages/mine/mine",
         "text": "我的",
         "iconPath": "images/tab-profile.png",
         "selectedIconPath": "images/tab-profile-active.png"

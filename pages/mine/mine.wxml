@@ -1,0 +1,7 @@
+<view class="page-wrap">
+  <view class="placeholder-card">
+    <view class="placeholder-tag">COMING SOON</view>
+    <view class="placeholder-title">我的</view>
+    <view class="placeholder-desc">这里先留空，后面可以继续放账号、会员、设备、通知和更多个人中心功能。</view>
+  </view>
+</view>

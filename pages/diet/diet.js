@@ -123,7 +123,7 @@ Page({
   },
 
   goProfile() {
-    wx.switchTab({
+    wx.navigateTo({
       url: '/pages/profile/profile'
     })
   },

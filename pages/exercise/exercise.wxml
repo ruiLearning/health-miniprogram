@@ -1,0 +1,116 @@
+<view class="page-wrap">
+  <view class="hero-card">
+    <view class="hero-orbit orbit-a"></view>
+    <view class="hero-orbit orbit-b"></view>
+    <view class="hero-globe">
+      <view class="globe-core"></view>
+      <view class="globe-ring ring-1"></view>
+      <view class="globe-ring ring-2"></view>
+      <view class="globe-grid globe-grid-h"></view>
+      <view class="globe-grid globe-grid-v"></view>
+    </view>
+    <view class="hero-kicker">EARTH MOTION</view>
+    <view class="hero-title">运动星球</view>
+    <view class="hero-desc">地图、户外、记录 3 个模块已经接好，先做成地球仪风格。</view>
+  </view>
+
+  <scroll-view class="top-tab-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="top-tab-row">
+      <view
+        wx:for="{{topTabs}}"
+        wx:key="key"
+        class="top-tab {{activeTab === index ? 'top-tab-active' : ''}}"
+        data-index="{{index}}"
+        bindtap="switchTab"
+        hover-class="top-tab-hover"
+        hover-stay-time="80"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <block wx:for="{{panels}}" wx:key="title">
+    <view wx:if="{{activeTab === index}}" class="panel-card panel-{{item.accent}}">
+      <view class="panel-badge">{{item.badge}}</view>
+      <view class="panel-title">{{item.title}}</view>
+      <view class="panel-desc">{{item.desc}}</view>
+
+      <block wx:if="{{index === 0}}">
+        <view class="map-wrap">
+          <map
+            id="exerciseMap"
+            class="exercise-map"
+            latitude="{{latitude}}"
+            longitude="{{longitude}}"
+            scale="{{scale}}"
+            markers="{{markers}}"
+            show-location
+            enable-zoom
+            enable-scroll
+          ></map>
+          <view class="map-glow map-glow-a"></view>
+          <view class="map-glow map-glow-b"></view>
+        </view>
+
+        <view class="map-toolbar">
+          <view class="map-status">{{locationLabel}}</view>
+          <view class="map-locate-btn" bindtap="locateMe" hover-class="map-locate-btn-hover" hover-stay-time="80">定位到我</view>
+        </view>
+      </block>
+
+      <view class="panel-section-title">{{index === 0 ? '可继续扩展' : '预留方向'}}</view>
+      <block wx:if="{{index === 0}}">
+        <view class="featured-route">
+          <view class="featured-route-badge">RIDE</view>
+          <view class="featured-route-title">{{item.featuredRoute.title}}</view>
+          <view class="featured-route-line">{{item.featuredRoute.route}}</view>
+          <view class="featured-route-meta-row">
+            <view class="featured-route-meta">{{item.featuredRoute.distance}}</view>
+            <view class="featured-route-meta">{{item.featuredRoute.time}}</view>
+          </view>
+          <view class="featured-route-desc">{{item.featuredRoute.desc}}</view>
+          <view class="highlight-row featured-highlight-row">
+            <view class="highlight-chip" wx:for="{{item.highlights}}" wx:key="*this">{{item}}</view>
+          </view>
+        </view>
+      </block>
+      <view wx:else class="highlight-row">
+        <view class="highlight-chip" wx:for="{{item.highlights}}" wx:key="*this">{{item}}</view>
+      </view>
+
+      <block wx:if="{{index === 1}}">
+        <view class="panel-section-title">户外灵感</view>
+        <view class="featured-route">
+          <view class="featured-route-badge">RIDE</view>
+          <view class="featured-route-title">{{item.featuredRoute.title}}</view>
+          <view class="featured-route-line">{{item.featuredRoute.route}}</view>
+          <view class="featured-route-meta-row">
+            <view class="featured-route-meta">{{item.featuredRoute.distance}}</view>
+            <view class="featured-route-meta">{{item.featuredRoute.time}}</view>
+          </view>
+          <view class="featured-route-desc">{{item.featuredRoute.desc}}</view>
+        </view>
+        <view class="outdoor-list">
+          <view class="outdoor-card" wx:for="{{item.cards}}" wx:key="title">
+            <view class="outdoor-card-title">{{item.title}}</view>
+            <view class="outdoor-card-meta">{{item.meta}}</view>
+            <view class="outdoor-card-desc">{{item.desc}}</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{index === 2}}">
+        <view class="panel-section-title">近期记录示例</view>
+        <view class="record-list">
+          <view class="record-card" wx:for="{{item.records}}" wx:key="title">
+            <view class="record-day">{{item.day}}</view>
+            <view class="record-main">
+              <view class="record-title">{{item.title}}</view>
+              <view class="record-meta">{{item.meta}}</view>
+            </view>
+            <view class="record-kcal">{{item.kcal}} kcal</view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>
